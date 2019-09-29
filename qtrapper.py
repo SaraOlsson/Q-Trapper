@@ -14,7 +14,7 @@ score
 enemies
 
 Game structure:
-AI or user controller
+(started) AI or user controller
 
 """
 
@@ -67,11 +67,11 @@ class Player(object):
         self.y = self.position[0]
         self.x = self.position[1]
 
-def user_input(event, game):
+
+def user_controller(event, game):
 
     grid = game.env.grid
     player = game.player
-    flood = game.flood
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         # User clicks the mouse. Get the position
@@ -101,40 +101,55 @@ def user_input(event, game):
 
         player.update_position()
 
-
-        if grid[player.y][player.x] == FILL:
-            print("bumped into wall")
-
-            if game.env.can_move(player.position):
-                player.position = prev_pos
-            else:  # duplicate
-                print("cannot move")
-                player.position = game.env.find_cell(PLAYFIELD) # only one cell
+        eval_move(game, prev_pos)
 
 
-            player.update_xy()
+def ai_controller():
 
-        if player.going_risky:
+    # naive first code:
+    # get random value 0: left, 1:right, 2:up, 3:down
+    # update player position
+    temp = 1
 
-            if grid[player.y][player.x] == RISKYLINE:
+def eval_move(game, prev_pos):
 
-                print("intersection!")
+    grid = game.env.grid
+    player = game.player
+    flood = game.flood
 
-            if grid[player.y][player.x] == BORDER:
-                player.going_risky = False
-                # print("going_safe!")
+    if grid[player.y][player.x] == FILL:
+        print("bumped into wall")
 
-                # determin area etc
-                flood.flood_area(player)
+        if game.env.can_move(player.position):
+            player.position = prev_pos
+        else:  # duplicate
+            print("cannot move")
+            player.position = game.env.find_cell(PLAYFIELD) # only one cell
 
-        if grid[player.y][player.x] == PLAYFIELD: # and not going_risky:
+        player.update_xy()
 
-            if not player.going_risky:
-                player.going_risky = True
-                #print("going_risky!")
+    if player.going_risky:
 
-            grid[player.y][player.x] = RISKYLINE # fill risky line after player
-            player.risky_lane.append([player.y, player.x])
+        if grid[player.y][player.x] == RISKYLINE:
+
+            print("intersection!")
+
+        if grid[player.y][player.x] == BORDER:
+            player.going_risky = False
+            # print("going_safe!")
+
+            # determin area etc
+            flood.flood_area(player)
+
+    if grid[player.y][player.x] == PLAYFIELD: # and not going_risky:
+
+        if not player.going_risky:
+            player.going_risky = True
+            #print("going_risky!")
+
+        grid[player.y][player.x] = RISKYLINE # fill risky line after player
+        player.risky_lane.append([player.y, player.x])
+
 
 def draw_game(game):
 
@@ -191,7 +206,10 @@ def run():
                     done = True  # Flag that we are done so we exit this loop
 
                 if ai_mode == False:
-                    user_input(event, game)
+                    user_controller(event, game)
+                else:
+                    ai_controller()
+
 
             draw_game(game)
 
