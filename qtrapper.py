@@ -26,7 +26,7 @@ from enviroment import *
 from flood import *
 
 
-user_controll = True
+ai_mode = False
 
 class Game:
 
@@ -43,7 +43,6 @@ class Game:
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
         self.flood = Flood(self.env)
-
 
 class Player(object):
 
@@ -67,11 +66,6 @@ class Player(object):
 
         self.y = self.position[0]
         self.x = self.position[1]
-
-def update_screen():
-
-    pygame.display.update()
-
 
 def user_input(event, game):
 
@@ -142,6 +136,37 @@ def user_input(event, game):
             grid[player.y][player.x] = RISKYLINE # fill risky line after player
             player.risky_lane.append([player.y, player.x])
 
+def draw_game(game):
+
+    # Set the screen background
+    game.gameDisplay.fill(DARKGRAY)
+    grid = game.env.grid
+    player = game.player
+
+    # Draw the grid
+    for row in range(GRID_SIZE):
+        for column in range(GRID_SIZE):
+
+            if grid[row][column] == PLAYFIELD: # if risky line
+                color = GRAY
+            elif grid[row][column] == RISKYLINE: # if risky line
+                color = DARKRED
+            elif grid[row][column] == BORDER: # if border
+                color = DARKGREEN
+            elif grid[row][column] == FILL: # if fill
+                color = ORANGE
+
+            # color the cell where the agent is
+            if row == player.y and column == player.x:
+                color = GREEN
+
+            pygame.draw.rect(game.gameDisplay,
+                             color,
+                             [(MARGIN + WIDTH) * column + MARGIN,
+                              (MARGIN + HEIGHT) * row + MARGIN,
+                              WIDTH,
+                              HEIGHT])
+
 
 def run():
 
@@ -165,43 +190,14 @@ def run():
                 if event.type == pygame.QUIT:  # If user clicked close
                     done = True  # Flag that we are done so we exit this loop
 
-                if user_controll == True:
-
+                if ai_mode == False:
                     user_input(event, game)
-                    
 
-            # Set the screen background
-            game.gameDisplay.fill(DARKGRAY)
+            draw_game(game)
 
-            # Draw the grid
-            for row in range(GRID_SIZE):
-                for column in range(GRID_SIZE):
-
-                    if grid[row][column] == PLAYFIELD: # if risky line
-                        color = GRAY
-                    elif grid[row][column] == RISKYLINE: # if risky line
-                        color = DARKRED
-                    elif grid[row][column] == BORDER: # if border
-                        color = DARKGREEN
-                    elif grid[row][column] == FILL: # if fill
-                        color = ORANGE
-
-                    # color the cell where the agent is
-                    if row == player.y and column == player.x:
-                        color = GREEN
-
-                    pygame.draw.rect(game.gameDisplay,
-                                     color,
-                                     [(MARGIN + WIDTH) * column + MARGIN,
-                                      (MARGIN + HEIGHT) * row + MARGIN,
-                                      WIDTH,
-                                      HEIGHT])
-
-            # Limit to 60 frames per second
+            # Limit to 60 frames per second, then update the screen
             game.clock.tick(60)
-
-            # Go ahead and update the screen with what we've drawn.
-            pygame.display.flip()
+            pygame.display.flip() # alternative: pygame.display.update()
 
             counter_games += 1
 
