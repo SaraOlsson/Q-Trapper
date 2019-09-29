@@ -1,6 +1,14 @@
 import numpy as np
 from constants import *
 
+"""
+TODO:
+
+Statics:
+filled VS Unfilled
+
+"""
+
 class Enviroment:
     def __init__(self, grid_size):
         self.grid = np.full((grid_size, grid_size), 2)

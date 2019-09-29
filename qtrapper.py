@@ -6,16 +6,15 @@
 """
 TODO:
 
-
-count percentage of filled VS playfield cells - useful with a Grid class?
-(fixed, but should be done earlier?) if agent is inside filled area -> move to closest borders
-
 add:
 actions
 state
 score
 
 enemies
+
+Game structure:
+AI or user controller
 
 """
 
@@ -26,6 +25,8 @@ from constants import *
 from enviroment import *
 from flood import *
 
+
+user_controll = True
 
 class Game:
 
@@ -41,6 +42,7 @@ class Game:
 
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
+        self.flood = Flood(self.env)
 
 
 class Player(object):
@@ -71,6 +73,76 @@ def update_screen():
     pygame.display.update()
 
 
+def user_input(event, game):
+
+    grid = game.env.grid
+    player = game.player
+    flood = game.flood
+
+    if event.type == pygame.MOUSEBUTTONDOWN:
+        # User clicks the mouse. Get the position
+        # Change the x/y screen coordinates to grid coordinates
+        pos = pygame.mouse.get_pos()
+        column = pos[0] // (WIDTH + MARGIN)
+        row = pos[1] // (HEIGHT + MARGIN)
+
+        print("Click ", pos, "Grid coordinates: ", row, column)
+
+    elif event.type == pygame.KEYDOWN:
+
+        keys = pygame.key.get_pressed()
+        prev_pos = copy.deepcopy(player.position) # [player.x, player.y] #Position(player.x,player.y) # copy.deepcopy(player) #
+
+        if keys[pygame.K_LEFT] and player.x > 0:
+            player.x -= 1
+
+        if keys[pygame.K_RIGHT] and player.x < GRID_SIZE - 1:
+            player.x += 1
+
+        if keys[pygame.K_UP] and player.y > 0:
+            player.y -= 1
+
+        if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
+            player.y += 1
+
+        player.update_position()
+
+
+        if grid[player.y][player.x] == FILL:
+            print("bumped into wall")
+
+            if game.env.can_move(player.position):
+                player.position = prev_pos
+            else:  # duplicate
+                print("cannot move")
+                player.position = game.env.find_cell(PLAYFIELD) # only one cell
+
+
+            player.update_xy()
+
+        if player.going_risky:
+
+            if grid[player.y][player.x] == RISKYLINE:
+
+                print("intersection!")
+
+            if grid[player.y][player.x] == BORDER:
+                player.going_risky = False
+                # print("going_safe!")
+
+                # determin area etc
+                flood.flood_area(player)
+
+        if grid[player.y][player.x] == PLAYFIELD: # and not going_risky:
+
+            if not player.going_risky:
+                player.going_risky = True
+                #print("going_risky!")
+
+            grid[player.y][player.x] = RISKYLINE # fill risky line after player
+            player.risky_lane.append([player.y, player.x])
+
+
 def run():
 
     pygame.init()
@@ -82,79 +154,21 @@ def run():
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
         grid = game.env.grid
         player = game.player
-        flood = Flood(game.env)
+        flood = game.flood # Flood(game.env)
 
         # Loop until the user clicks the close button.
         done = False
 
         while not done:
+
             for event in pygame.event.get():  # User did something
                 if event.type == pygame.QUIT:  # If user clicked close
                     done = True  # Flag that we are done so we exit this loop
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    # User clicks the mouse. Get the position
-                    # Change the x/y screen coordinates to grid coordinates
-                    pos = pygame.mouse.get_pos()
-                    column = pos[0] // (WIDTH + MARGIN)
-                    row = pos[1] // (HEIGHT + MARGIN)
 
-                    print("Click ", pos, "Grid coordinates: ", row, column)
+                if user_controll == True:
 
-                elif event.type == pygame.KEYDOWN:
-
-                    keys = pygame.key.get_pressed()
-                    prev_pos = copy.deepcopy(player.position) # [player.x, player.y] #Position(player.x,player.y) # copy.deepcopy(player) #
-
-
-
-                    if keys[pygame.K_LEFT] and player.x > 0:
-                        player.x -= 1
-
-                    if keys[pygame.K_RIGHT] and player.x < GRID_SIZE - 1:
-                        player.x += 1
-
-                    if keys[pygame.K_UP] and player.y > 0:
-                        player.y -= 1
-
-                    if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
-                        player.y += 1
-
-                    player.update_position()
-
-
-                    if grid[player.y][player.x] == FILL:
-                        print("bumped into wall")
-
-                        if game.env.can_move(player.position):
-                            player.position = prev_pos
-                        else:  # duplicate
-                            print("cannot move")
-                            player.position = game.env.find_cell(PLAYFIELD) # only one cell
-
-
-                        player.update_xy()
-
-                    if player.going_risky:
-
-                        if grid[player.y][player.x] == RISKYLINE:
-
-                            print("intersection!")
-
-                        if grid[player.y][player.x] == BORDER:
-                            player.going_risky = False
-                            # print("going_safe!")
-
-                            # determin area etc
-                            flood.flood_area(player)
-
-                    if grid[player.y][player.x] == PLAYFIELD: # and not going_risky:
-
-                        if not player.going_risky:
-                            player.going_risky = True
-                            #print("going_risky!")
-
-                        grid[player.y][player.x] = RISKYLINE # fill risky line after player
-                        player.risky_lane.append([player.y, player.x])
+                    user_input(event, game)
+                    
 
             # Set the screen background
             game.gameDisplay.fill(DARKGRAY)
