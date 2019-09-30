@@ -54,9 +54,17 @@ class Enviroment:
         return [[r+1, c], [r, c+1], [r-1, c], [r, c-1],
                 [r+1, c+1], [r+1, c-1], [r-1, c-1], [r-1, c+1]]
 
+    def limited_neighbours(self, r, c):
+
+        """Calculates the neighbours of a given cell"""
+        return [[r+1, c], [r, c+1], [r-1, c], [r, c-1]]
+
+
     def can_move(self, cell):
 
-        moves = self.neighbours(*cell) #cell[0], cell[1]
+        moves = self.limited_neighbours(*cell) #cell[0], cell[1]
+        #diagonal_moves =
+
         move_is_playfield = False
 
         for move in moves:

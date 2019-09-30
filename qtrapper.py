@@ -21,12 +21,14 @@ Game structure:
 import pygame
 import numpy as np
 import copy
+from random import randint
 from constants import *
 from enviroment import *
 from flood import *
 
 
-ai_mode = False
+ai_mode = True
+speed = 20
 
 class Game:
 
@@ -67,6 +69,10 @@ class Player(object):
         self.y = self.position[0]
         self.x = self.position[1]
 
+    def set_position(self, new_pos):
+
+        self.y, self.x = new_pos
+        self.position = [self.y, self.x]
 
 def user_controller(event, game):
 
@@ -87,68 +93,108 @@ def user_controller(event, game):
         keys = pygame.key.get_pressed()
         prev_pos = copy.deepcopy(player.position) # [player.x, player.y] #Position(player.x,player.y) # copy.deepcopy(player) #
 
+        move_array = [0, 0]
+        y_change = 0
+        x_change = 0
+
         if keys[pygame.K_LEFT] and player.x > 0:
-            player.x -= 1
+            x_change = -1
 
         if keys[pygame.K_RIGHT] and player.x < GRID_SIZE - 1:
-            player.x += 1
+            x_change = 1
 
         if keys[pygame.K_UP] and player.y > 0:
-            player.y -= 1
+            y_change = -1
 
         if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
-            player.y += 1
+            y_change = 1
 
-        player.update_position()
+        #player.y += y_change
+        #player.x += x_change
 
-        eval_move(game, prev_pos)
+        y = player.y + y_change
+        x = player.x + x_change
+
+        #new_pos = [player.y, player.x]
+        new_pos = [y, x]
+
+        eval_move(game, new_pos, prev_pos)
 
 
-def ai_controller():
+def random_move(game):
+
+    pos_changes = [[1, 0], [0, 1], [-1, 0], [0, -1]]
+    #moves = [[-1, 0], [0, -1]]
+    safe_moves = []
+    player = game.player
+
+    for pos_change in pos_changes:
+
+        y = player.y + pos_change[0]
+        x = player.x + pos_change[1]
+        move = [y,x]
+
+        if game.env.within_grid(move):
+            safe_moves.append(move)
+            print("safe move: ", move )
+
+    rand_ind = randint(0, len(safe_moves) - 1)
+    return safe_moves[rand_ind]
+
+def ai_controller(game):
 
     # naive first code:
     # get random value 0: left, 1:right, 2:up, 3:down
-    # update player position
-    temp = 1
+    prev_pos = copy.deepcopy(game.player.position)
+    new_pos = random_move(game)
 
-def eval_move(game, prev_pos):
+    # update player position
+    eval_move(game, new_pos, prev_pos)
+
+
+def eval_move(game, new_pos, prev_pos):
 
     grid = game.env.grid
     player = game.player
     flood = game.flood
 
-    if grid[player.y][player.x] == FILL:
+    y, x = new_pos
+
+    if grid[y][x] == FILL:
         print("bumped into wall")
 
         if game.env.can_move(player.position):
-            player.position = prev_pos
+            new_pos = prev_pos # or before again
         else:  # duplicate
             print("cannot move")
-            player.position = game.env.find_cell(PLAYFIELD) # only one cell
-
-        player.update_xy()
+            new_pos = game.env.find_cell(PLAYFIELD) # only one cell
+            player.set_position(new_pos)
+            y, x = new_pos
 
     if player.going_risky:
 
-        if grid[player.y][player.x] == RISKYLINE:
+        if grid[y][x] == RISKYLINE:
 
             print("intersection!")
 
-        if grid[player.y][player.x] == BORDER:
+        if grid[y][x] == BORDER:
             player.going_risky = False
             # print("going_safe!")
 
             # determin area etc
             flood.flood_area(player)
 
-    if grid[player.y][player.x] == PLAYFIELD: # and not going_risky:
+    if grid[y][x] == PLAYFIELD: # and not going_risky:
 
         if not player.going_risky:
             player.going_risky = True
             #print("going_risky!")
 
-        grid[player.y][player.x] = RISKYLINE # fill risky line after player
-        player.risky_lane.append([player.y, player.x])
+        grid[y][x] = RISKYLINE # fill risky line after player
+        player.risky_lane.append([y, x])
+
+    player.set_position(new_pos)
+    #player.update_position()
 
 
 def draw_game(game):
@@ -201,14 +247,16 @@ def run():
 
         while not done:
 
+            if ai_mode == True:
+                ai_controller(game)
+                pygame.time.wait(speed)
+
             for event in pygame.event.get():  # User did something
                 if event.type == pygame.QUIT:  # If user clicked close
                     done = True  # Flag that we are done so we exit this loop
 
                 if ai_mode == False:
                     user_controller(event, game)
-                else:
-                    ai_controller()
 
 
             draw_game(game)
