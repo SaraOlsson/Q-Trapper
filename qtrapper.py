@@ -265,8 +265,8 @@ def run():
 
                 if event.type == pygame.KEYDOWN and ai_mode == False:
                     print(event.type)
-                    agent.calculate_features()
                     user_controller(event, game, agent)
+                    agent.calculate_features()
 
 
             if game.env.filled_percentage >= game_won_percentage:
