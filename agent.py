@@ -48,11 +48,15 @@ class Agent:
 
     def get_best_move(self, cur_pos):
         print("best move")
-        possible_moves = [move for move in self.q_table[self.cur_state]]
+        # possible_moves = [move for move in self.q_table[self.cur_state]]
         max = -np.inf
         best_index = -1
         idx = 0
-        for move in possible_moves:
+        val = 0
+        # print(possible_moves)
+        for move in self.actions:
+            print(cur_pos)
+            print(move)
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
             val += self.get_transition_reward(temp_pos)
             if (val > max):
@@ -63,6 +67,8 @@ class Agent:
 
     def update_q_table(self, cur_state, move_idx, cur_pos):
         print("update q-table")
+        print(cur_pos)
+        print(move_idx)
         new_pos = [cur_pos[0] + self.actions[move_idx][0], cur_pos[1] + self.actions[move_idx][1]]
         self.calculate_features(new_pos)
         next_state = self.get_state_from_features()
@@ -82,8 +88,9 @@ class Agent:
         cur_pos = self.game.player.position
         # make random move when exploring
         move_idx = None
-        if (random.randint < self.exploration_rate):
-            move_idx = np.floor(random.randint * 4)  # 4 possible moves
+        if (random.uniform(0, 1) < self.exploration_rate):
+            # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
+            move_idx = random.randint(0, 3)
         else:
             move_idx = self.get_best_move(cur_pos)
 
@@ -119,11 +126,11 @@ class Agent:
         # cur_pos = self.game.player.position
         #print(cur_pos)
         idx = 0
-        # print("features before", self.features)
+        print("features before", self.features)
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action)
             idx += 1
-        # print("features after", self.features)
+        print("features after", self.features)
 
     def init_q_table(self, cur_):
         print("init q_table")

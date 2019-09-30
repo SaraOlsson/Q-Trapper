@@ -28,7 +28,7 @@ from flood import *
 from agent import Agent
 
 
-ai_mode = False
+ai_mode = True
 speed = 20
 game_won_percentage = 0.8
 
@@ -145,12 +145,14 @@ def random_move(game):
     rand_ind = randint(0, len(safe_moves) - 1)
     return safe_moves[rand_ind]
 
-def ai_controller(game):
+def ai_controller(game, agent):
 
     # naive first code:
     # get random value 0: left, 1:right, 2:up, 3:down
     prev_pos = copy.deepcopy(game.player.position)
-    new_pos = random_move(game)
+    # new_pos = random_move(game)
+    move = agent.ai_step()
+    new_pos = [prev_pos[0] + move[0], prev_pos[1] + move[1]]
 
     # update player position
     eval_move(game, new_pos, prev_pos)
@@ -248,6 +250,7 @@ def run():
         player = game.player
         flood = game.flood # Flood(game.env)
         agent = Agent(game)
+        agent.init_agent()
 
         # Loop until the user clicks the close button.
         done = False
@@ -256,7 +259,7 @@ def run():
 
 
             if ai_mode == True:
-                ai_controller(game)
+                ai_controller(game, agent)
                 pygame.time.wait(speed)
 
             for event in pygame.event.get():  # User did something
@@ -266,7 +269,6 @@ def run():
                 if event.type == pygame.KEYDOWN and ai_mode == False:
                     print(event.type)
                     user_controller(event, game, agent)
-                    agent.calculate_features()
 
 
             if game.env.filled_percentage >= game_won_percentage:
