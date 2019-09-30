@@ -1,6 +1,9 @@
 """
 Agent class
 Sarol and Emmni jao
+
+TODO:
+ write get_reward function
 """
 import numpy as np
 from constants import *
@@ -55,7 +58,6 @@ class Agent:
             idx += 1
         return best_index
 
-
     def update_q_table(self, cur_state, move_idx, cur_pos):
         print("update q-table")
         new_pos = [cur_pos[0] + self.actions[move_idx][0], cur_pos[1] + self.actions[move_idx][1]]
@@ -67,9 +69,11 @@ class Agent:
         max_q = np.max(cur_q_vals)
 
         # update table for this state and action
-        old_q = (1 - self.learning_rate) * self.q_table[]
-
-
+        # old_q = (1 - self.learning_rate) * self.q_table[cur_state][move_idx]
+        old_q = self.q_table[cur_state][move_idx]
+        # new_q = self.learning_rate * self.get_reward(new_pos) + self.get_transition_reward(new_pos) + self.gamma * max_q
+        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.gamma * max_q - old_q)
+        self.q_table[cur_state][move_idx] = new_q
 
     def ai_step(self):
         cur_pos = self.game.player.position
@@ -81,7 +85,7 @@ class Agent:
             move_idx = self.get_best_move(cur_pos)
 
         # update table
-        self.update_q_table(move_idx, cur_pos)
+        self.update_q_table(self.cur_state, move_idx, cur_pos)
 
         # get position after making a move
         cur_pos = [cur_pos[0] + self.actions[move_idx][0],
