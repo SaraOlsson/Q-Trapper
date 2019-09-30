@@ -43,6 +43,9 @@ class Agent:
 
         return reward
 
+    def get_reward(self, new_pos):
+        return 1
+
     def get_best_move(self, cur_pos):
         print("best move")
         possible_moves = [move for move in self.q_table[self.cur_state]]
