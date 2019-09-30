@@ -29,6 +29,7 @@ from flood import *
 
 ai_mode = True
 speed = 20
+game_won_percentage = 0.8
 
 class Game:
 
@@ -136,7 +137,7 @@ def random_move(game):
 
         if game.env.within_grid(move):
             safe_moves.append(move)
-            print("safe move: ", move )
+            # print("safe move: ", move )
 
     rand_ind = randint(0, len(safe_moves) - 1)
     return safe_moves[rand_ind]
@@ -161,12 +162,12 @@ def eval_move(game, new_pos, prev_pos):
     y, x = new_pos
 
     if grid[y][x] == FILL:
-        print("bumped into wall")
+        #print("bumped into wall")
 
         if game.env.can_move(player.position):
             new_pos = prev_pos # or before again
         else:  # duplicate
-            print("cannot move")
+            #print("cannot move")
             new_pos = game.env.find_cell(PLAYFIELD) # only one cell
             player.set_position(new_pos)
             y, x = new_pos
@@ -175,7 +176,8 @@ def eval_move(game, new_pos, prev_pos):
 
         if grid[y][x] == RISKYLINE:
 
-            print("intersection!")
+            temp = 0
+            #print("intersection!")
 
         if grid[y][x] == BORDER:
             player.going_risky = False
@@ -183,6 +185,7 @@ def eval_move(game, new_pos, prev_pos):
 
             # determin area etc
             flood.flood_area(player)
+            game.env.calculate_percentage(FILL)
 
     if grid[y][x] == PLAYFIELD: # and not going_risky:
 
@@ -258,6 +261,10 @@ def run():
                 if ai_mode == False:
                     user_controller(event, game)
 
+
+            if game.env.filled_percentage >= game_won_percentage:
+                done = True
+                print("GAME WON")
 
             draw_game(game)
 

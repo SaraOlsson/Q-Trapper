@@ -36,7 +36,7 @@ class Flood():
 
         for idx in range(2): # should catch all areas..
             flood_starting_point = self.find_flood_starting_point(celltype = PLAYFIELD)
-            print("flood_starting_point", flood_starting_point)
+            #print("flood_starting_point", flood_starting_point)
 
             if flood_starting_point:
 
@@ -54,7 +54,7 @@ class Flood():
                 if num_areas == 1: # if it was the first area calculated
                     self.smallest_area = copy.copy(player.risky_lane)
 
-        print("smallest_area size: ", len(self.smallest_area) )
+        #print("smallest_area size: ", len(self.smallest_area) )
 
         # fill enclosured are to no mans land
         for cell in self.smallest_area:

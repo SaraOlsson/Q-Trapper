@@ -15,6 +15,16 @@ class Enviroment:
         self.grid[1:-1, 1:-1] = 0
         self.grid_size = grid_size
 
+        self.filled_percentage = 0
+
+    def calculate_percentage(self, celltype):
+
+        celltype_cells = self.find_cells(celltype)
+        total_area = GRID_SIZE*GRID_SIZE
+
+        self.filled_percentage = len(celltype_cells) / total_area
+        print("self.filled_percentage: ", self.filled_percentage)
+
     def find_cell(self, celltype):
 
         # search for a first replace point
@@ -22,6 +32,7 @@ class Enviroment:
             for column in range(self.grid_size):
                 if self.grid[row][column] == celltype:
                     return [row, column]
+
 
     def find_cells(self, celltype):
 
