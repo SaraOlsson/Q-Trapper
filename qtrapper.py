@@ -25,9 +25,10 @@ from random import randint
 from constants import *
 from enviroment import *
 from flood import *
+from agent import Agent
 
 
-ai_mode = True
+ai_mode = False
 speed = 20
 game_won_percentage = 0.8
 
@@ -75,10 +76,11 @@ class Player(object):
         self.y, self.x = new_pos
         self.position = [self.y, self.x]
 
-def user_controller(event, game):
+def user_controller(event, game, agent):
 
     grid = game.env.grid
     player = game.player
+
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         # User clicks the mouse. Get the position
@@ -118,6 +120,7 @@ def user_controller(event, game):
 
         #new_pos = [player.y, player.x]
         new_pos = [y, x]
+
 
         eval_move(game, new_pos, prev_pos)
 
@@ -244,11 +247,13 @@ def run():
         grid = game.env.grid
         player = game.player
         flood = game.flood # Flood(game.env)
+        agent = Agent(game)
 
         # Loop until the user clicks the close button.
         done = False
 
         while not done:
+
 
             if ai_mode == True:
                 ai_controller(game)
@@ -258,8 +263,10 @@ def run():
                 if event.type == pygame.QUIT:  # If user clicked close
                     done = True  # Flag that we are done so we exit this loop
 
-                if ai_mode == False:
-                    user_controller(event, game)
+                if event.type == pygame.KEYDOWN and ai_mode == False:
+                    print(event.type)
+                    agent.calculate_features()
+                    user_controller(event, game, agent)
 
 
             if game.env.filled_percentage >= game_won_percentage:
