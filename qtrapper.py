@@ -29,7 +29,7 @@ from agent import Agent
 
 
 ai_mode = True
-speed = 20
+speed = 10
 game_won_percentage = 0.8
 
 class Game:
@@ -242,15 +242,17 @@ def run():
     pygame.init()
     counter_games = 0
 
-    while counter_games < 1: # 150
+    agent = Agent()
+
+    while counter_games < 5: # 150
 
         # Initialize classes
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
         grid = game.env.grid
         player = game.player
         flood = game.flood # Flood(game.env)
-        agent = Agent(game)
-        agent.init_agent()
+
+        agent.init_agent(game)
 
         # Loop until the user clicks the close button.
         done = False
@@ -282,7 +284,8 @@ def run():
             game.clock.tick(60)
             pygame.display.flip() # alternative: pygame.display.update()
 
-            counter_games += 1
+        # one game done
+        counter_games += 1
 
     # If you forget this line, the program will 'hang' on exit.
     pygame.quit()

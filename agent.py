@@ -14,21 +14,22 @@ NR_FEATURES = 4
 
 
 class Agent:
-    def __init__(self, game):
+    def __init__(self):
         self.q_table = np.zeros([2**NR_FEATURES, 4])
         self.features = np.zeros([NR_FEATURES])
-        self.game = game
+        self.game = None # game
         self.actions = [[1, 0], [0, 1], [-1, 0], [0, -1]] # DOWN, RIGHT, UP, LEFT
         self.cur_state = 0
         self.exploration_rate = 0.5
         self.learning_rate = 0.5
         self.gamma = 0.8
-        self.init_agent()
+        #self.init_agent()
         print(self.q_table)
 
-    def init_agent(self):
+    def init_agent(self, game):
+        self.game = game
         self.calculate_features(self.game.player.position)
-        self.cur_state = self.get_state_from_features()
+        self.get_state_from_features()
 
     def get_transition_reward(self, pos):
         reward = 0
@@ -51,7 +52,7 @@ class Agent:
         best_index = -1
         idx = 0
         val = 0
-        
+
         for move in self.actions:
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
