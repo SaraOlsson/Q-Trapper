@@ -28,8 +28,8 @@ from flood import *
 from agent import Agent
 
 
-ai_mode = True
-speed = 20
+ai_mode = False
+speed = 120
 game_won_percentage = 0.8
 game_iterations = 1
 
@@ -76,7 +76,6 @@ def user_controller(event, game, agent):
     grid = game.env.grid
     player = game.player
 
-
     if event.type == pygame.MOUSEBUTTONDOWN:
         # User clicks the mouse. Get the position
         # Change the x/y screen coordinates to grid coordinates
@@ -89,7 +88,7 @@ def user_controller(event, game, agent):
     elif event.type == pygame.KEYDOWN:
 
         keys = pygame.key.get_pressed()
-        prev_pos = copy.deepcopy(player.position) # [player.x, player.y] #Position(player.x,player.y) # copy.deepcopy(player) #
+        cur_pos = copy.deepcopy(player.position)
 
         move_array = [0, 0]
         y_change = 0
@@ -107,17 +106,12 @@ def user_controller(event, game, agent):
         if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
             y_change = 1
 
-        #player.y += y_change
-        #player.x += x_change
-
         y = player.y + y_change
         x = player.x + x_change
 
-        #new_pos = [player.y, player.x]
         new_pos = [y, x]
 
-
-        eval_move(game, new_pos, prev_pos)
+        eval_move(game, new_pos, cur_pos)
 
 
 def random_move(game):
@@ -144,16 +138,17 @@ def ai_controller(game, agent):
 
     # naive first code:
     # get random value 0: left, 1:right, 2:up, 3:down
-    prev_pos = copy.deepcopy(game.player.position)
+    cur_pos = copy.deepcopy(game.player.position)
+
     # new_pos = random_move(game)
     move = agent.ai_step()
-    new_pos = [prev_pos[0] + move[0], prev_pos[1] + move[1]]
+    new_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
     # update player position
-    eval_move(game, new_pos, prev_pos)
+    eval_move(game, new_pos, cur_pos)
 
 
-def eval_move(game, new_pos, prev_pos):
+def eval_move(game, new_pos, cur_pos):
 
     grid = game.env.grid
     player = game.player
@@ -164,11 +159,14 @@ def eval_move(game, new_pos, prev_pos):
     if grid[y][x] == FILL:
         #print("bumped into wall")
 
-        if game.env.can_move(player.position):
-            new_pos = prev_pos # or before again
-        else:  # duplicate
-            #print("cannot move")
-            new_pos = game.env.find_cell(PLAYFIELD) # only one cell
+        # if player can move to border
+        if game.env.can_move(player.position, BORDER):
+            # maybe cur_pos will be FILL?
+            new_pos = cur_pos # or before again
+
+        else:  # if cannot move at all
+            print("cannot move buhu")
+            new_pos = game.env.find_cell(BORDER) # only one cell
             player.set_position(new_pos)
             y, x = new_pos
 
@@ -263,7 +261,7 @@ def run():
                     done = True  # Flag that we are done so we exit this loop
 
                 if event.type == pygame.KEYDOWN and ai_mode == False:
-                    print(event.type)
+                    # print(event.type)
                     user_controller(event, game, agent)
 
 

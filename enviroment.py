@@ -70,17 +70,17 @@ class Enviroment:
         """Calculates the neighbours of a given cell"""
         return [[r+1, c], [r, c+1], [r-1, c], [r, c-1]]
 
-
-    def can_move(self, cell):
+    # can move to border
+    def can_move(self, cell, celltype):
 
         moves = self.limited_neighbours(*cell) #cell[0], cell[1]
         #diagonal_moves =
 
-        move_is_playfield = False
+        move_is_celltype = False
 
         for move in moves:
 
-            if self.within_grid(move) and self.grid[move[0]][move[1]] == BORDER:
-                move_is_playfield = True
+            if self.within_grid(move) and self.grid[move[0]][move[1]] == celltype:
+                move_is_celltype = True
 
-        return move_is_playfield
+        return move_is_celltype
