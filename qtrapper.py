@@ -28,13 +28,8 @@ from flood import *
 from agent import Agent
 
 
-<<<<<<< HEAD
-ai_mode = False
-speed = 120
-=======
 ai_mode = True
 speed = 10
->>>>>>> 77c723fe39a45d345760d3d79bc59d9c0048c37b
 game_won_percentage = 0.8
 game_iterations = 3
 
@@ -295,15 +290,9 @@ def run():
 
     while not done:
 
-<<<<<<< HEAD
-                if event.type == pygame.KEYDOWN and ai_mode == False:
-                    # print(event.type)
-                    user_controller(event, game, agent)
-=======
         if ai_mode == True:
             ai_controller(game, agent)
             pygame.time.wait(speed)
->>>>>>> 77c723fe39a45d345760d3d79bc59d9c0048c37b
 
         for event in pygame.event.get():  # User did something
             if event.type == pygame.QUIT:  # If user clicked close
