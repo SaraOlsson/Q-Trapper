@@ -36,7 +36,7 @@ class Agent:
         grid = self.game.env.grid
         y, x = pos
 
-        if grid[y][x] == PLAYFIELD:
+        if self.game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD:
             reward += 2
         else:
             reward -= 2
@@ -58,10 +58,12 @@ class Agent:
             print(cur_pos)
             print(move)
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
-            val += self.get_transition_reward(temp_pos)
+
+            val = self.get_transition_reward(temp_pos)
             if (val > max):
                 max = val
                 best_index = idx
+
             idx += 1
         return best_index
 
@@ -88,11 +90,22 @@ class Agent:
         cur_pos = self.game.player.position
         # make random move when exploring
         move_idx = None
-        if (random.uniform(0, 1) < self.exploration_rate):
-            # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
-            move_idx = random.randint(0, 3)
-        else:
-            move_idx = self.get_best_move(cur_pos)
+        move = None
+
+        while True:
+
+            if (random.uniform(0, 1) < self.exploration_rate):
+                # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
+                move_idx = random.randint(0, 3)
+            else:
+                move_idx = self.get_best_move(cur_pos)
+
+            move = self.actions[move_idx]
+            temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
+
+            # check if temp_pos is within grid
+            if self.game.env.within_grid(temp_pos):
+                break
 
         # update table
         self.update_q_table(self.cur_state, move_idx, cur_pos)
@@ -116,7 +129,7 @@ class Agent:
         x = cur_pos[1] + action[1]
         #y, x = cur_pos + action
 
-        if grid[y][x] == celltype and self.game.env.within_grid([y, x]):
+        if self.game.env.within_grid([y, x]) and grid[y][x] == celltype:
             return 1
         else:
             return 0

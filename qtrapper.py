@@ -192,7 +192,7 @@ def eval_move(game, new_pos, prev_pos):
             flood.flood_area(player)
             game.env.calculate_percentage(FILL)
 
-    if grid[y][x] == PLAYFIELD: # and not going_risky:
+    if game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD: # and not going_risky:
 
         if not player.going_risky:
             player.going_risky = True
@@ -274,6 +274,7 @@ def run():
             if game.env.filled_percentage >= game_won_percentage:
                 done = True
                 print("GAME WON")
+                print(agent.q_table)
 
             draw_game(game)
 
