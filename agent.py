@@ -35,12 +35,16 @@ class Agent:
         reward = 0
 
         grid = self.game.env.grid
+        player = self.game.player
         y, x = pos
 
         if self.game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD:
             reward += 2
         else:
             reward -= 2
+        if y == player.prev_pos[0] and x == player.prev_pos[1]:
+            reward -= 2
+            #print("pos is prev_pos")
 
         return reward
 

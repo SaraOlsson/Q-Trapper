@@ -29,8 +29,9 @@ from agent import Agent
 
 
 ai_mode = True
-speed = 10
+speed = 20
 game_won_percentage = 0.8
+game_iterations = 1
 
 class Game:
 
@@ -55,6 +56,7 @@ class Player(object):
         self.y = 0
         self.x = 2
         self.position = [self.y, self.x]
+        self.prev_pos = [self.y, self.x]
         self.eaten = False
         self.y_change = 1
         self.x_change = 1
@@ -62,19 +64,12 @@ class Player(object):
         self.going_risky = False
         self.risky_lane = []
 
-    def update_position(self):
-
-        self.position = [self.y, self.x]
-
-    def update_xy(self):
-
-        self.y = self.position[0]
-        self.x = self.position[1]
-
     def set_position(self, new_pos):
 
+        self.prev_pos = copy.copy(self.position)
         self.y, self.x = new_pos
         self.position = [self.y, self.x]
+
 
 def user_controller(event, game, agent):
 
@@ -202,7 +197,6 @@ def eval_move(game, new_pos, prev_pos):
         player.risky_lane.append([y, x])
 
     player.set_position(new_pos)
-    #player.update_position()
 
 
 def draw_game(game):
@@ -244,7 +238,7 @@ def run():
 
     agent = Agent()
 
-    while counter_games < 5: # 150
+    while counter_games < game_iterations: # 150
 
         # Initialize classes
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)

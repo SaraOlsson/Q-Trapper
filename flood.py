@@ -87,8 +87,8 @@ class Flood():
         if grid[player.y][player.x] == FILL:
             if self.env.can_move(player.position) == False:
                 print("cannot move")
-                player.position = self.env.find_cell(PLAYFIELD) # only one cell
-                player.update_position()
+                temp_pos = self.env.find_cell(PLAYFIELD)
+                player.set_position(temp_pos)
 
 
     # reqursive
