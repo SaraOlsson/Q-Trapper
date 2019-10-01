@@ -47,16 +47,12 @@ class Agent:
         return 1
 
     def get_best_move(self, cur_pos):
-        print("best move")
-        # possible_moves = [move for move in self.q_table[self.cur_state]]
         max = -np.inf
         best_index = -1
         idx = 0
         val = 0
-        # print(possible_moves)
+        
         for move in self.actions:
-            print(cur_pos)
-            print(move)
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
             val = self.get_transition_reward(temp_pos)
@@ -68,9 +64,6 @@ class Agent:
         return best_index
 
     def update_q_table(self, cur_state, move_idx, cur_pos):
-        print("update q-table")
-        print(cur_pos)
-        print(move_idx)
         new_pos = [cur_pos[0] + self.actions[move_idx][0], cur_pos[1] + self.actions[move_idx][1]]
         self.calculate_features(new_pos)
         next_state = self.get_state_from_features()
@@ -80,9 +73,7 @@ class Agent:
         max_q = np.max(cur_q_vals)
 
         # update table for this state and action
-        # old_q = (1 - self.learning_rate) * self.q_table[cur_state][move_idx]
         old_q = self.q_table[cur_state][move_idx]
-        # new_q = self.learning_rate * self.get_reward(new_pos) + self.get_transition_reward(new_pos) + self.gamma * max_q
         new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.gamma * max_q - old_q)
         self.q_table[cur_state][move_idx] = new_q
 
@@ -123,11 +114,8 @@ class Agent:
     def get_is_celltype(self, cur_pos, action, celltype=PLAYFIELD):
 
         grid = self.game.env.grid
-        # print("cur pos", cur_pos)
-        # print("action", action)
         y = cur_pos[0] + action[0]
         x = cur_pos[1] + action[1]
-        #y, x = cur_pos + action
 
         if self.game.env.within_grid([y, x]) and grid[y][x] == celltype:
             return 1
@@ -135,15 +123,10 @@ class Agent:
             return 0
 
     def calculate_features(self, cur_pos):
-        #print("calc features")
-        # cur_pos = self.game.player.position
-        #print(cur_pos)
         idx = 0
-        print("features before", self.features)
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action)
             idx += 1
-        print("features after", self.features)
 
     def init_q_table(self, cur_):
         print("init q_table")
@@ -158,4 +141,4 @@ class Agent:
             state_index += 4
         if (self.features[3] > 0):
             state_index += 8
-        return state_index
+        self.cur_state = state_index
