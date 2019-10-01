@@ -27,6 +27,8 @@ from enviroment import *
 from flood import *
 from agent import Agent
 
+models_file = open("models.npy","wb")
+# read with np.load(models_file) and set q_table with it?
 
 ai_mode = True
 speed = 10
@@ -274,8 +276,9 @@ def run():
 
     agent = Agent()
 
-    # Train AI off screen
-    training_ai(agent)
+    if ai_mode == True:
+        # Train AI off screen
+        training_ai(agent)
 
     # After training, use agent to play the game
     agent.training = False
@@ -312,6 +315,9 @@ def run():
         # Limit to 60 frames per second, then update the screen
         game.clock.tick(60)
         pygame.display.flip() # alternative: pygame.display.update()
+
+    #to_save = np.arange(10)
+    np.save(models_file, agent.q_table)
 
     # If you forget this line, the program will 'hang' on exit.
     pygame.quit()
