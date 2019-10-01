@@ -29,17 +29,18 @@ from agent import Agent
 
 
 ai_mode = True
-speed = 20
+speed = 10
 game_won_percentage = 0.8
-game_iterations = 1
+game_iterations = 3
 
 class Game:
 
-    def __init__(self, game_width, game_height, grid_size):
-        pygame.display.set_caption('Q-Trapper')
-        self.game_width = game_width
-        self.game_height = game_height
-        self.gameDisplay = pygame.display.set_mode((game_width, game_height+60))
+    def __init__(self, game_width, game_height, grid_size, show=False):
+        if show:
+            pygame.display.set_caption('Q-Trapper')
+            self.game_width = game_width
+            self.game_height = game_height
+            self.gameDisplay = pygame.display.set_mode((game_width, game_height+60))
         #self.bg = pygame.image.load("img/background.png")
         self.crash = False
         self.player = Player()
@@ -199,6 +200,44 @@ def eval_move(game, new_pos, prev_pos):
     player.set_position(new_pos)
 
 
+def training_ai(agent):
+    counter_games = 0
+
+    while counter_games < game_iterations:
+        # print training progress
+        if counter_games % 10 == 0:
+            print("Iteration", counter_games)
+
+        # Initialize classes
+        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
+
+        agent.init_agent(game)
+
+        # Loop until the user clicks the close button.
+        done = False
+
+        while not done:
+
+            if ai_mode == True:
+                ai_controller(game, agent)
+
+            for event in pygame.event.get():  # User did something
+                if event.type == pygame.QUIT:  # If user clicked close
+                    done = True  # Flag that we are done so we exit this loop
+
+                if event.type == pygame.KEYDOWN and ai_mode == False:
+                    print(event.type)
+                    user_controller(event, game, agent)
+
+
+            if game.env.filled_percentage >= game_won_percentage:
+                done = True
+                #print("GAME WON")
+                #print(agent.q_table)
+
+        # one game done
+        counter_games += 1
+
 def draw_game(game):
 
     # Set the screen background
@@ -234,52 +273,47 @@ def draw_game(game):
 def run():
 
     pygame.init()
-    counter_games = 0
 
     agent = Agent()
 
-    while counter_games < game_iterations: # 150
+    # Train AI off screen
+    training_ai(agent)
 
-        # Initialize classes
-        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
-        grid = game.env.grid
-        player = game.player
-        flood = game.flood # Flood(game.env)
+    # After training, use agent to play the game
+    agent.training = False
 
-        agent.init_agent(game)
+    # Initialize classes
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
 
-        # Loop until the user clicks the close button.
-        done = False
+    agent.init_agent(game)
 
-        while not done:
+    # Loop until the user clicks the close button.
+    done = False
 
+    while not done:
 
-            if ai_mode == True:
-                ai_controller(game, agent)
-                pygame.time.wait(speed)
+        if ai_mode == True:
+            ai_controller(game, agent)
+            pygame.time.wait(speed)
 
-            for event in pygame.event.get():  # User did something
-                if event.type == pygame.QUIT:  # If user clicked close
-                    done = True  # Flag that we are done so we exit this loop
+        for event in pygame.event.get():  # User did something
+            if event.type == pygame.QUIT:  # If user clicked close
+                done = True  # Flag that we are done so we exit this loop
 
-                if event.type == pygame.KEYDOWN and ai_mode == False:
-                    print(event.type)
-                    user_controller(event, game, agent)
+            if event.type == pygame.KEYDOWN and ai_mode == False:
+                print(event.type)
+                user_controller(event, game, agent)
 
+        if game.env.filled_percentage >= game_won_percentage:
+            done = True
+            print("GAME WON")
+            print(agent.q_table)
 
-            if game.env.filled_percentage >= game_won_percentage:
-                done = True
-                print("GAME WON")
-                print(agent.q_table)
+        draw_game(game)
 
-            draw_game(game)
-
-            # Limit to 60 frames per second, then update the screen
-            game.clock.tick(60)
-            pygame.display.flip() # alternative: pygame.display.update()
-
-        # one game done
-        counter_games += 1
+        # Limit to 60 frames per second, then update the screen
+        game.clock.tick(60)
+        pygame.display.flip() # alternative: pygame.display.update()
 
     # If you forget this line, the program will 'hang' on exit.
     pygame.quit()

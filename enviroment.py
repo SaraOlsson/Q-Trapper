@@ -23,7 +23,7 @@ class Enviroment:
         total_area = GRID_SIZE*GRID_SIZE
 
         self.filled_percentage = len(celltype_cells) / total_area
-        print("self.filled_percentage: ", self.filled_percentage)
+        #print("self.filled_percentage: ", self.filled_percentage)
 
     def find_cell(self, celltype):
 
