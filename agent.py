@@ -21,6 +21,8 @@ class Agent:
         self.actions = [[1, 0], [0, 1], [-1, 0], [0, -1]] # DOWN, RIGHT, UP, LEFT
         self.cur_state = 0
         self.exploration_rate = 0.5
+        self.exploration_rate_game = 0.1
+        self.training = True
         self.learning_rate = 0.5
         self.gamma = 0.8
         #self.init_agent()
@@ -89,12 +91,18 @@ class Agent:
         move = None
 
         while True:
-
-            if (random.uniform(0, 1) < self.exploration_rate):
-                # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
-                move_idx = random.randint(0, 3)
+            if self.training:
+                if (random.uniform(0, 1) < self.exploration_rate):
+                    # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
+                    move_idx = random.randint(0, 3)
+                else:
+                    move_idx = self.get_best_move(cur_pos)
             else:
-                move_idx = self.get_best_move(cur_pos)
+                if (random.uniform(0, 1) < self.exploration_rate_game):
+                    # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
+                    move_idx = random.randint(0, 3)
+                else:
+                    move_idx = self.get_best_move(cur_pos)
 
             move = self.actions[move_idx]
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
