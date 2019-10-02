@@ -47,6 +47,7 @@ class Game:
         self.crash = False
         self.player = Player()
         self.score = 0
+        self.steps_required = 0
 
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
@@ -168,7 +169,7 @@ def eval_move(game, new_pos, cur_pos):
             new_pos = cur_pos # or before again
 
         else:  # if cannot move at all
-            print("cannot move buhu")
+            # print("cannot move buhu")
             new_pos = game.env.find_cell(BORDER) # only one cell
             player.set_position(new_pos)
             y, x = new_pos
@@ -309,15 +310,18 @@ def run():
             done = True
             print("GAME WON")
             print(agent.q_table)
+            print("steps_required", game.steps_required)
 
         draw_game(game)
 
         # Limit to 60 frames per second, then update the screen
         game.clock.tick(60)
         pygame.display.flip() # alternative: pygame.display.update()
+        game.steps_required += 1
 
     #to_save = np.arange(10)
     np.save(models_file, agent.q_table)
+
 
     # If you forget this line, the program will 'hang' on exit.
     pygame.quit()

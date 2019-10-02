@@ -53,6 +53,8 @@ class Agent:
     def get_reward(self, new_pos):
         return 1
 
+        # if filled_percentage increased?
+
     def get_best_move(self, cur_pos):
         max = -np.inf
         best_index = -1
