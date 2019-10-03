@@ -26,6 +26,8 @@ from constants import *
 from enviroment import *
 from flood import *
 from agent import Agent
+import queue
+from helperfunctions import *
 
 models_file = open("models.npy","wb")
 #models_file_read = open("models.npy","rb")
@@ -38,7 +40,7 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 1
+game_iterations = 3
 
 class Game:
 
@@ -87,8 +89,13 @@ class Player(object):
 
             # print("move me plz")
             new_pos = game.env.find_cell(BORDER) # searches from topleft
-            self.set_position(new_pos)
 
+            start_queue = queue.Queue()
+            start_queue.put((self.x,self.y))
+            BFS_results = BFS(start_queue, game, BORDER)
+            #print("BFS_results: ", BFS_results)
+
+            self.set_position(BFS_results)
 
 def user_controller(event, game, agent):
 
@@ -182,12 +189,12 @@ def eval_move(game, new_pos, cur_pos):
         if game.env.can_move(player.position, BORDER):
             # maybe cur_pos will be FILL?
             new_pos = cur_pos # or before again
-
+        """
         else:  # if cannot move at all
             # print("cannot move buhu")
             new_pos = game.env.find_cell(BORDER) # only one cell
             player.set_position(new_pos)
-            y, x = new_pos
+            y, x = new_pos """
 
     if player.going_risky:
 
