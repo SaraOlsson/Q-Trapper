@@ -40,7 +40,7 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 3
+game_iterations = 25
 
 class Game:
 
@@ -171,7 +171,21 @@ def ai_controller(game, agent):
     new_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
     # update player position
+
+    filled_before = game.env.filled_percentage
+
+    #print("filled_before", game.env.filled_percentage)
     eval_move(game, new_pos, cur_pos)
+
+    filled_after = game.env.filled_percentage
+    #print("filled_after", game.env.filled_percentage)
+    game.env.instant_fill_increase = 0
+    if filled_after > filled_before:
+        # print("filled increased from ", filled_before, " to ", filled_after  )
+        game.env.instant_fill_increase = filled_after - filled_before
+
+
+
 
 
 def eval_move(game, new_pos, cur_pos):

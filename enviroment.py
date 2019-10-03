@@ -16,6 +16,7 @@ class Enviroment:
         self.grid_size = grid_size
 
         self.filled_percentage = 0
+        self.instant_fill_increase = 0
 
     def calculate_percentage(self, celltype):
 

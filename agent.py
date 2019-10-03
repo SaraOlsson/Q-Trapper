@@ -10,7 +10,7 @@ from constants import *
 import random
 
 # Constants
-NR_FEATURES = 4
+NR_FEATURES = 9
 
 
 class Agent:
@@ -51,6 +51,13 @@ class Agent:
         return reward
 
     def get_reward(self, new_pos):
+
+        #print("get_reward", self.game.env.instant_fill_increase)
+
+        if self.game.env.instant_fill_increase > 0:
+            #print("return 10")
+            return 20
+
         return 1
 
         # if filled_percentage increased?
@@ -141,7 +148,10 @@ class Agent:
         idx = 0
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action)
+            self.features[idx] = self.get_is_celltype(cur_pos, action, BORDER)
             idx += 1
+
+        self.features[idx] = len(self.game.player.risky_lane)
 
     def init_q_table(self, cur_):
         print("init q_table")
@@ -156,4 +166,6 @@ class Agent:
             state_index += 4
         if (self.features[3] > 0):
             state_index += 8
+        if (self.features[4] > 10): # length of risky_lane
+            state_index += 16
         self.cur_state = state_index
