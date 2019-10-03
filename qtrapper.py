@@ -28,12 +28,17 @@ from flood import *
 from agent import Agent
 
 models_file = open("models.npy","wb")
-# read with np.load(models_file) and set q_table with it?
+#models_file_read = open("models.npy","rb")
+
+#loaded_q_table = np.load("models.npy")
+## read with np.load(models_file) and set q_table with it?
+
+#print(loaded_q_table)
 
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 3
+game_iterations = 1
 
 class Game:
 
@@ -73,6 +78,16 @@ class Player(object):
         self.prev_pos = copy.copy(self.position)
         self.y, self.x = new_pos
         self.position = [self.y, self.x]
+
+    def move_if_at_filled(self, game):
+
+        grid = game.env.grid
+
+        if grid[self.y][self.x] == FILL:
+
+            # print("move me plz")
+            new_pos = game.env.find_cell(BORDER) # searches from topleft
+            self.set_position(new_pos)
 
 
 def user_controller(event, game, agent):
@@ -189,6 +204,7 @@ def eval_move(game, new_pos, cur_pos):
             flood.flood_area(player)
             game.env.calculate_percentage(FILL)
 
+
     if game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD: # and not going_risky:
 
         if not player.going_risky:
@@ -199,6 +215,7 @@ def eval_move(game, new_pos, cur_pos):
         player.risky_lane.append([y, x])
 
     player.set_position(new_pos)
+    player.move_if_at_filled(game)
 
 
 def training_ai(agent):
@@ -303,7 +320,7 @@ def run():
                 done = True  # Flag that we are done so we exit this loop
 
             if event.type == pygame.KEYDOWN and ai_mode == False:
-                print(event.type)
+                # print(event.type)
                 user_controller(event, game, agent)
 
         if game.env.filled_percentage >= game_won_percentage:
@@ -320,7 +337,7 @@ def run():
         game.steps_required += 1
 
     #to_save = np.arange(10)
-    np.save(models_file, agent.q_table)
+    np.save("models", agent.q_table)
 
 
     # If you forget this line, the program will 'hang' on exit.
