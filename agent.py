@@ -33,6 +33,7 @@ class Agent:
         self.calculate_features(self.game.player.position)
         self.get_state_from_features()
 
+    # used for picking the best move
     def get_transition_reward(self, pos):
         reward = 0
 
@@ -40,8 +41,11 @@ class Agent:
         player = self.game.player
         y, x = pos
 
-        if self.game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD:
-            reward += 2
+        if self.game.env.within_grid([y, x]):
+            if grid[y][x] == PLAYFIELD:
+                reward += 2
+            elif grid[y][x] == BORDER:
+                reward += 1
         else:
             reward -= 2
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
@@ -50,18 +54,24 @@ class Agent:
 
         return reward
 
+    # used when updating the q-table
     def get_reward(self, new_pos):
 
         #print("get_reward", self.game.env.instant_fill_increase)
 
         if self.game.env.instant_fill_increase > 0:
             #print("return 10")
+            if self.game.env.instant_fill_increase >= 1: # funkar ev inte
+                print("game won reward")
+                return 50
+
             return 20
 
-        return 1
+        return -1
 
         # if filled_percentage increased?
 
+    # get best action index based on transition reward
     def get_best_move(self, cur_pos):
         max = -np.inf
         best_index = -1
@@ -90,15 +100,17 @@ class Agent:
 
         # update table for this state and action
         old_q = self.q_table[cur_state][move_idx]
-        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.gamma * max_q - old_q)
+        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.get_transition_reward(new_pos) + self.gamma * max_q - old_q)
         self.q_table[cur_state][move_idx] = new_q
 
+    # each time step, first thing to do
     def ai_step(self):
         cur_pos = self.game.player.position
         # make random move when exploring
         move_idx = None
         move = None
 
+        # get a move that is valid (within grid)
         while True:
             if self.training:
                 if (random.uniform(0, 1) < self.exploration_rate):
@@ -158,7 +170,7 @@ class Agent:
 
     def get_state_from_features(self):
         state_index = 0
-        if (self.features[0] > 0):
+        if (self.features[0] > 0): # 0-3: is playfield
             state_index += 1
         if (self.features[1] > 0):
             state_index += 2
@@ -166,6 +178,14 @@ class Agent:
             state_index += 4
         if (self.features[3] > 0):
             state_index += 8
-        if (self.features[4] > 10): # length of risky_lane
+        if (self.features[4] > 0): # 0-3: is border
             state_index += 16
+        if (self.features[5] > 0):
+            state_index += 32
+        if (self.features[6] > 0):
+            state_index += 64
+        if (self.features[7] > 0):
+            state_index += 128
+        if (self.features[8] > 10): # length of risky_lane
+            state_index += 256
         self.cur_state = state_index
