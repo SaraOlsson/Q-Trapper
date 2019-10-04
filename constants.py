@@ -8,6 +8,7 @@ DARKRED = (128, 13, 41)
 GRAY = (71, 61, 64)
 ORANGE = (255, 203, 89)
 DARKGRAY = (40, 40, 40)
+BLUE = (0, 0, 255)
 
 # Define window variables
 WINDOW_HEIGHT = 610

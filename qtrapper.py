@@ -21,7 +21,7 @@ Game structure:
 import pygame
 import numpy as np
 import copy
-from random import randint
+from random import randint, choice
 from constants import *
 from enviroment import *
 from flood import *
@@ -37,10 +37,11 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = True
+ai_mode = False
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 25
+game_iterations = 3
+
 
 class Game:
 
@@ -56,9 +57,13 @@ class Game:
         self.score = 0
         self.steps_required = 0
 
+        # enemy prototype
+        self.enemy = Enemy()
+
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
         self.flood = Flood(self.env)
+
 
 class Player(object):
 
@@ -97,10 +102,64 @@ class Player(object):
 
             self.set_position(BFS_results)
 
+
+class Enemy:
+    def __init__(self):
+        self.y = 15
+        self.x = 10
+        self.position = [self.y, self.x]
+        self.direction = [1, 1]
+        self.dir_list = [-1, 1]
+
+    def update(self):
+        print("updating")
+
+    def move(self, game):
+        """
+        Moves straight until it hits a wall.
+        """
+        print("moving")
+        new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+        if game.env.within_grid(new_pos):
+            #if game.env.grid[new_pos[0], new_pos[1]] == BORDER:
+                # Change direction of moving enemy
+                # if self.direction[0] > 0:
+                #     new_y_dir = randint(-1, 1)
+                # else:
+                #     new_y_dir = randint(0, 2)
+                #
+                # if self.direction[1] > 0:
+                #     new_x_dir = randint(-1, 1)
+                # else:
+                #     new_x_dir = randint(0, 2)
+
+            while game.env.grid[new_pos[0], new_pos[1]] == BORDER or (self.direction[0] == 0 and self.direction[1] == 0):
+                # if self.direction[0] > 0:
+                #     new_y_dir = randint(-1, 0)
+                # else:
+                #     new_y_dir = randint(0, 1)
+                #
+                # if self.direction[1] > 0:
+                #     new_x_dir = randint(-1, 0)
+                # else:
+                #     new_x_dir = randint(0, 1)
+
+                self.direction = [choice(self.dir_list), choice(self.dir_list)]
+                print("direction", self.direction)
+                new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+            # Set the new position
+            self.position = new_pos
+            self.y = new_pos[0]
+            self.x = new_pos[1]
+
+
+
 def user_controller(event, game, agent):
 
     grid = game.env.grid
     player = game.player
+    enemy = game.enemy
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         # User clicks the mouse. Get the position
@@ -283,6 +342,7 @@ def draw_game(game):
     game.gameDisplay.fill(DARKGRAY)
     grid = game.env.grid
     player = game.player
+    enemy = game.enemy
 
     # Draw the grid
     for row in range(GRID_SIZE):
@@ -291,7 +351,7 @@ def draw_game(game):
             if grid[row][column] == PLAYFIELD: # if risky line
                 color = GRAY
             elif grid[row][column] == RISKYLINE: # if risky line
-                color = DARKRED
+                color = BLUE
             elif grid[row][column] == BORDER: # if border
                 color = DARKGREEN
             elif grid[row][column] == FILL: # if fill
@@ -300,6 +360,10 @@ def draw_game(game):
             # color the cell where the agent is
             if row == player.y and column == player.x:
                 color = GREEN
+
+            # color enemy cells
+            if row == enemy.y and column == enemy.x:
+                color = DARKRED
 
             pygame.draw.rect(game.gameDisplay,
                              color,
@@ -324,11 +388,15 @@ def run():
 
     # Initialize classes
     game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
+    enemy = game.enemy
 
     agent.init_agent(game)
 
     # Loop until the user clicks the close button.
     done = False
+
+    # counter for enemy movement
+    count_enemy = 0
 
     while not done:
 
@@ -343,6 +411,11 @@ def run():
             if event.type == pygame.KEYDOWN and ai_mode == False:
                 # print(event.type)
                 user_controller(event, game, agent)
+
+        if count_enemy % 10 == 0:
+            enemy.move(game)
+        #pygame.time.wait(300)
+        count_enemy += 1
 
         if game.env.filled_percentage >= game_won_percentage:
             done = True

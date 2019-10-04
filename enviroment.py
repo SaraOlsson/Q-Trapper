@@ -12,7 +12,7 @@ filled VS Unfilled
 class Enviroment:
     def __init__(self, grid_size):
         self.grid = np.full((grid_size, grid_size), 2)
-        self.grid[1:-1, 1:-1] = 0
+        self.grid[1:-1, 1:-1] = PLAYFIELD
         self.grid_size = grid_size
 
         self.filled_percentage = 0
