@@ -40,7 +40,7 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 3
+game_iterations = 150
 
 
 class Game:
@@ -118,7 +118,7 @@ class Enemy:
         """
         Moves straight until it hits a wall.
         """
-        print("moving")
+        # print("moving")
         new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
         if game.env.within_grid(new_pos):
             #if game.env.grid[new_pos[0], new_pos[1]] == BORDER:
@@ -145,7 +145,7 @@ class Enemy:
                 #     new_x_dir = randint(0, 1)
 
                 self.direction = [choice(self.dir_list), choice(self.dir_list)]
-                print("direction", self.direction)
+                #print("direction", self.direction)
                 new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
             # Set the new position
@@ -433,7 +433,7 @@ def run():
     #to_save = np.arange(10)
     np.save("models", agent.q_table)
 
-
+    #pygame.time.wait(5000) # pause before quit
     # If you forget this line, the program will 'hang' on exit.
     pygame.quit()
 

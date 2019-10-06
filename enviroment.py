@@ -18,6 +18,11 @@ class Enviroment:
         self.filled_percentage = 0
         self.instant_fill_increase = 0
 
+    """
+    def is_cell_celltype(self, cell, celltype):
+
+        grid[y][x] == PLAYFIELD: """
+
     def calculate_percentage(self, celltype):
 
         celltype_cells = self.find_cells(celltype)

@@ -36,21 +36,33 @@ class Agent:
         self.get_state_from_features()
 
     # used for picking the best move
-    def get_transition_reward(self, pos):
+    def get_transition_reward(self, pos, move_idx):
         reward = 0
 
         grid = self.game.env.grid
         player = self.game.player
-        y, x = pos
+        y, x = pos # possible new position
+        y_cur, x_cur = player.position
+        y_prev, x_prev = player.prev_pos
 
         if not self.game.env.within_grid([y, x]): # checked in get_best_move
             print("SHOULD NOT HAPPEN")
+        """
+        if grid[y_cur][x_cur] == PLAYFIELD:
+
+            if move_idx == self.prev_action_index:
+                reward += 2"""
+
 
         if grid[y][x] == PLAYFIELD:
-            reward += 2
+
+            if move_idx == self.prev_action_index:
+                reward += 2
+                #print("like prev index!")
         elif grid[y][x] == BORDER:
             reward += 1
 
+        # ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
             reward -= 2
             #print("pos is prev_pos")
@@ -76,25 +88,50 @@ class Agent:
 
     # get best action index based on transition reward
     def get_best_move(self, cur_pos):
+
+        # val should be based on qtable!
+        q_values = self.q_table[self.cur_state]
+
         max = -np.inf
         best_index = -1
         idx = 0
         val = 0
 
+        for val in q_values:
+
+            #print("value", val)
+
+            move = self.actions[idx]
+            temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
+
+            if self.game.env.within_grid(temp_pos):
+
+                val += self.get_transition_reward(temp_pos, idx)
+                if (val > max):
+                    max = val
+                    best_index = idx
+                    #print("val > max")
+
+            idx += 1
+
+        """
         for move in self.actions:
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
             if self.game.env.within_grid(temp_pos):
 
-                val = self.get_transition_reward(temp_pos)
+                val = self.get_transition_reward(temp_pos, idx)
                 if (val > max):
                     max = val
                     best_index = idx
 
-            idx += 1
+            idx += 1 """
+
         return best_index
 
-    def update_q_table(self, cur_state, move_idx, cur_pos):
+    def update_q_table(self, move_idx, cur_pos):
+
+        cur_state = self.cur_state
         new_pos = [cur_pos[0] + self.actions[move_idx][0], cur_pos[1] + self.actions[move_idx][1]]
         self.calculate_features(new_pos)
         next_state = self.get_state_from_features()
@@ -105,7 +142,7 @@ class Agent:
 
         # update table for this state and action
         old_q = self.q_table[cur_state][move_idx]
-        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.get_transition_reward(new_pos) + self.gamma * max_q - old_q)
+        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.get_transition_reward(new_pos, move_idx) + self.gamma * max_q - old_q)
         self.q_table[cur_state][move_idx] = new_q
 
     # each time step, first thing to do
@@ -143,7 +180,7 @@ class Agent:
                 break
 
         # update table
-        self.update_q_table(self.cur_state, move_idx, cur_pos)
+        self.update_q_table(move_idx, cur_pos)
 
         # get position after making a move
         cur_pos = [cur_pos[0] + self.actions[move_idx][0],
