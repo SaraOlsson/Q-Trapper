@@ -25,6 +25,8 @@ class Agent:
         self.training = True
         self.learning_rate = 0.5
         self.gamma = 0.8
+
+        self.prev_action_index = 0;
         #self.init_agent()
         print(self.q_table)
 
@@ -41,13 +43,14 @@ class Agent:
         player = self.game.player
         y, x = pos
 
-        if self.game.env.within_grid([y, x]):
-            if grid[y][x] == PLAYFIELD:
-                reward += 2
-            elif grid[y][x] == BORDER:
-                reward += 1
-        else:
-            reward -= 2
+        if not self.game.env.within_grid([y, x]): # checked in get_best_move
+            print("SHOULD NOT HAPPEN")
+
+        if grid[y][x] == PLAYFIELD:
+            reward += 2
+        elif grid[y][x] == BORDER:
+            reward += 1
+
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
             reward -= 2
             #print("pos is prev_pos")
@@ -81,10 +84,12 @@ class Agent:
         for move in self.actions:
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
-            val = self.get_transition_reward(temp_pos)
-            if (val > max):
-                max = val
-                best_index = idx
+            if self.game.env.within_grid(temp_pos):
+
+                val = self.get_transition_reward(temp_pos)
+                if (val > max):
+                    max = val
+                    best_index = idx
 
             idx += 1
         return best_index
@@ -125,7 +130,12 @@ class Agent:
                 else:
                     move_idx = self.get_best_move(cur_pos)
 
+            if move_idx < 0:
+                print("move_idx < 0")
+                continue
+
             move = self.actions[move_idx]
+            self.prev_action_index = move_idx
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
             # check if temp_pos is within grid

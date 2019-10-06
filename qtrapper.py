@@ -37,7 +37,7 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = False
+ai_mode = True
 speed = 10
 game_won_percentage = 0.8
 game_iterations = 3
