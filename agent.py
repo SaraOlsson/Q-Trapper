@@ -75,8 +75,9 @@ class Agent:
         #print("get_reward", self.game.env.instant_fill_increase)
 
         if self.game.env.instant_fill_increase > 0:
-            #print("return 10")
-            if self.game.env.instant_fill_increase >= 1: # funkar ev inte
+
+            # print("instant_fill_increase", self.game.env.instant_fill_increase)
+            if self.game.env.filled_percentage >= self.game.game_won_percentage: # funkar ev inte
                 print("game won reward")
                 return 50
 

@@ -19,3 +19,23 @@ def BFS(queue, game, celltype):
                 and (n,m) not in queue.queue :
                     queue.put((n,m))
     return BFS(queue, game, celltype)
+
+def random_move(game):
+
+    pos_changes = [[1, 0], [0, 1], [-1, 0], [0, -1]]
+    #moves = [[-1, 0], [0, -1]]
+    safe_moves = []
+    player = game.player
+
+    for pos_change in pos_changes:
+
+        y = player.y + pos_change[0]
+        x = player.x + pos_change[1]
+        move = [y,x]
+
+        if game.env.within_grid(move):
+            safe_moves.append(move)
+            # print("safe move: ", move )
+
+    rand_ind = randint(0, len(safe_moves) - 1)
+    return safe_moves[rand_ind]

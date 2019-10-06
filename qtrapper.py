@@ -40,7 +40,7 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 150
+game_iterations = 3
 
 
 class Game:
@@ -63,6 +63,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
         self.flood = Flood(self.env)
+
+        self.game_won_percentage = game_won_percentage
 
 
 class Player(object):
@@ -161,7 +163,7 @@ def user_controller(event, game, agent):
     player = game.player
     enemy = game.enemy
 
-    if event.type == pygame.MOUSEBUTTONDOWN:
+    if event.type == pygame.MOUSEBUTTONDOWN: # doesn't work rn since only keydown events are passed
         # User clicks the mouse. Get the position
         # Change the x/y screen coordinates to grid coordinates
         pos = pygame.mouse.get_pos()
@@ -199,54 +201,25 @@ def user_controller(event, game, agent):
         eval_move(game, new_pos, cur_pos)
 
 
-def random_move(game):
-
-    pos_changes = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-    #moves = [[-1, 0], [0, -1]]
-    safe_moves = []
-    player = game.player
-
-    for pos_change in pos_changes:
-
-        y = player.y + pos_change[0]
-        x = player.x + pos_change[1]
-        move = [y,x]
-
-        if game.env.within_grid(move):
-            safe_moves.append(move)
-            # print("safe move: ", move )
-
-    rand_ind = randint(0, len(safe_moves) - 1)
-    return safe_moves[rand_ind]
-
 def ai_controller(game, agent):
 
-    # naive first code:
-    # get random value 0: left, 1:right, 2:up, 3:down
     cur_pos = copy.deepcopy(game.player.position)
 
     # new_pos = random_move(game)
     move = agent.ai_step()
     new_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
-    # update player position
-
+    # evaluate move and fill status
     filled_before = game.env.filled_percentage
-
-    #print("filled_before", game.env.filled_percentage)
     eval_move(game, new_pos, cur_pos)
-
     filled_after = game.env.filled_percentage
-    #print("filled_after", game.env.filled_percentage)
+
+    # update instant fill increase value
     game.env.instant_fill_increase = 0
     if filled_after > filled_before:
-        # print("filled increased from ", filled_before, " to ", filled_after  )
         game.env.instant_fill_increase = filled_after - filled_before
 
-
-
-
-
+# evaluate how the move changed the game and playfield status
 def eval_move(game, new_pos, cur_pos):
 
     grid = game.env.grid
@@ -256,46 +229,40 @@ def eval_move(game, new_pos, cur_pos):
     y, x = new_pos
 
     if grid[y][x] == FILL:
-        #print("bumped into wall")
 
         # if player can move to border
-        if game.env.can_move(player.position, BORDER):
+        if game.env.can_move(player.position, BORDER): # needed?
             # maybe cur_pos will be FILL?
             new_pos = cur_pos # or before again
-        """
-        else:  # if cannot move at all
-            # print("cannot move buhu")
-            new_pos = game.env.find_cell(BORDER) # only one cell
-            player.set_position(new_pos)
-            y, x = new_pos """
 
+    # if trapping an area
     if player.going_risky:
 
+        # self-intersection. Handle this in a nice way?
         if grid[y][x] == RISKYLINE:
+            intersection = True # do something with this
 
-            temp = 0
-            #print("intersection!")
-
+        # getting back to border
         if grid[y][x] == BORDER:
             player.going_risky = False
-            # print("going_safe!")
 
             # determin area etc
             flood.flood_area(player)
             game.env.calculate_percentage(FILL)
 
+    # events on the playfield
+    if grid[y][x] == PLAYFIELD: # and not going_risky:
 
-    if game.env.within_grid([y, x]) and grid[y][x] == PLAYFIELD: # and not going_risky:
-
+        # when entering the playfield from border
         if not player.going_risky:
             player.going_risky = True
-            #print("going_risky!")
 
         grid[y][x] = RISKYLINE # fill risky line after player
         player.risky_lane.append([y, x])
 
+    # the actual position update. For both AI and user controller
     player.set_position(new_pos)
-    player.move_if_at_filled(game)
+    player.move_if_at_filled(game) # transport if player itself is trapped
 
 
 def training_ai(agent):
@@ -308,7 +275,6 @@ def training_ai(agent):
 
         # Initialize classes
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
-
         agent.init_agent(game)
 
         # Loop until the user clicks the close button.
@@ -417,7 +383,7 @@ def run():
         #pygame.time.wait(300)
         count_enemy += 1
 
-        if game.env.filled_percentage >= game_won_percentage:
+        if game.env.filled_percentage >= game.game_won_percentage:
             done = True
             print("GAME WON")
             print(agent.q_table)

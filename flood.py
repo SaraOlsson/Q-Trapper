@@ -54,7 +54,11 @@ class Flood():
                 if num_areas == 1: # if it was the first area calculated
                     self.smallest_area = copy.copy(player.risky_lane)
 
-        #print("smallest_area size: ", len(self.smallest_area) )
+        self.update_grid_values(player)
+
+    def update_grid_values(self, player):
+
+        grid = self.env.grid
 
         # fill enclosured are to no mans land
         for cell in self.smallest_area:
@@ -83,14 +87,7 @@ class Flood():
             if move_is_playfield == False:
                 grid[cell[0]][cell[1]] = FILL
 
-        # se if player is on
-        """
-        if grid[player.y][player.x] == FILL:
-
-            print("in fill")
-
-            new_pos = self.env.find_cell(BORDER) # only one cell
-            player.set_position(new_pos) """
+        # chech whether there is an enemy trapped!
 
 
     # reqursive
