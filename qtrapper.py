@@ -62,7 +62,7 @@ class Game:
 
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
-        self.flood = Flood(self.env)
+        self.flood = Flood(self)
 
         self.game_won_percentage = game_won_percentage
 
@@ -138,6 +138,7 @@ class Enemy:
         self.position = [self.y, self.x]
         self.direction = [1, 1]
         self.dir_list = [-1, 1]
+        self.alive = True
 
     def update(self):
         print("updating")
@@ -147,17 +148,19 @@ class Enemy:
         Moves straight until it hits a wall.
         """
         # print("moving")
-        new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
-        if game.env.within_grid(new_pos):
-            # Make sure new direction is a valid direction
-            while game.env.grid[new_pos[0], new_pos[1]] == BORDER or (self.direction[0] == 0 and self.direction[1] == 0):
-                self.direction = [choice(self.dir_list), choice(self.dir_list)]
-                new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
-            # Set the new position
-            self.position = new_pos
-            self.y = new_pos[0]
-            self.x = new_pos[1]
+        if self.alive == True:
+            new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+            if game.env.within_grid(new_pos):
+                # Make sure new direction is a valid direction
+                while game.env.grid[new_pos[0], new_pos[1]] == BORDER or (self.direction[0] == 0 and self.direction[1] == 0):
+                    self.direction = [choice(self.dir_list), choice(self.dir_list)]
+                    new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+                # Set the new position
+                self.position = new_pos
+                self.y = new_pos[0]
+                self.x = new_pos[1]
 
 
 
@@ -376,7 +379,7 @@ def run():
                 # print(event.type)
                 user_controller(event, game, agent)
 
-        if count_enemy % 10 == 0: # Remember to move to AI as well
+        if count_enemy % 30 == 0: # Remember to move to AI as well
             enemy.move(game)
         #pygame.time.wait(300)
         count_enemy += 1

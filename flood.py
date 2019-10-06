@@ -3,14 +3,15 @@ from constants import *
 
 class Flood():
 
-    def __init__(self, env):
+    def __init__(self, game):
 
-        self.env = env
-        self.grid = env.grid
+        self.game = game
+        self.env = game.env
+        self.grid = game.env.grid
         self.smallest_area = []
         self.current_area = []
         self.visited = []
-        self.to_visit = env.find_cells(PLAYFIELD)
+        self.to_visit = game.env.find_cells(PLAYFIELD)
 
 
     def init_flood(self):
@@ -41,7 +42,7 @@ class Flood():
             if flood_starting_point:
 
                 self.current_area.clear()
-                self.flood_fill(*flood_starting_point, color = PLAYFIELD)
+                self.flood_fill(*flood_starting_point, celltype = PLAYFIELD)
                 num_areas += 1
 
                 if len(self.current_area) < len(self.smallest_area):
@@ -56,14 +57,37 @@ class Flood():
 
         self.update_grid_values(player)
 
+    def find_if_enemy(self, cell, enemy_list):
+        ##print("find_if_enemy")
+        enemy = self.game.enemy
+        r, c = cell
+        # get neighbours of cell
+        fill_neighbours = self.env.neighbours(r, c)
+        # is one of the neighbours an enemy?
+        for neighbour in fill_neighbours:
+
+            n_r, n_c = neighbour
+            if n_r == enemy.y and n_c == enemy.x and neighbour not in enemy_list:
+                print("enemy trapped at", neighbour)
+                enemy.alive = False
+                enemy_list.append(neighbour)
+                # return True
+
     def update_grid_values(self, player):
 
         grid = self.env.grid
+        enemy = self.game.enemy
+        found = False
+        enemy_list = []
 
         # fill enclosured are to no mans land
         for cell in self.smallest_area:
-            grid[cell[0]][cell[1]] = FILL
 
+            r, c = cell
+            grid[r][c] = FILL
+
+            self.find_if_enemy(cell, enemy_list )
+            
         # check now if there is still > 1 area
 
         # fill risky lane to border
@@ -91,12 +115,17 @@ class Flood():
 
 
     # reqursive
-    def flood_fill(self, r, c, color):
+    def flood_fill(self, r, c, celltype):
         grid = self.env.grid
+        enemy = self.game.enemy
+
+        #if r == enemy.y and c == enemy.x:
+        #    print("enemy trapped")
 
         if r < 0 or r >= GRID_SIZE: return
         if c < 0 or c >= GRID_SIZE: return
-        if grid[r][c] != color: return
+        if grid[r][c] != celltype:
+            return
 
         self.current_area.append([r, c]) # will be cleared before each flood_fill
         self.visited.append([r, c])
@@ -104,7 +133,7 @@ class Flood():
         moves = self.env.neighbours(r, c) # limited_
         for move in moves:
             if move not in self.visited:
-                self.flood_fill(move[0], move[1], color)
+                self.flood_fill(move[0], move[1], celltype)
 
     def find_flood_starting_point(self, celltype = PLAYFIELD):
         grid = self.env.grid
