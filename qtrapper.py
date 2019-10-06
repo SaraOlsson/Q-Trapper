@@ -37,7 +37,7 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = True
+ai_mode = False
 speed = 10
 game_won_percentage = 0.8
 game_iterations = 150
@@ -87,6 +87,9 @@ class Player(object):
         self.position = [self.y, self.x]
 
     def move_if_at_filled(self, game):
+        """
+        Move player to nearest border using breadth-first search.
+        """
 
         grid = game.env.grid
 
@@ -101,6 +104,29 @@ class Player(object):
             #print("BFS_results: ", BFS_results)
 
             self.set_position(BFS_results)
+
+    def check_collision(self, game):
+        enemy = game.enemy
+        grid = game.env.grid
+        # Only check collisions when we have a lane
+        if self.going_risky:
+            for risk_pos in self.risky_lane:
+                # If player risky lane collides with enemy
+                if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
+                    # BFS search for where to move player
+                    start_queue = queue.Queue()
+                    start_queue.put((self.x,self.y))
+                    BFS_results = BFS(start_queue, game, BORDER)
+                    self.set_position(BFS_results)
+
+                    # Mark all cells in risky_lane as playfield
+                    for cell in self.risky_lane:
+                        grid[cell[0]][cell[1]] = PLAYFIELD
+
+                    self.risky_lane.clear()
+                    break
+
+
 
 
 class Enemy:
@@ -121,31 +147,9 @@ class Enemy:
         # print("moving")
         new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
         if game.env.within_grid(new_pos):
-            #if game.env.grid[new_pos[0], new_pos[1]] == BORDER:
-                # Change direction of moving enemy
-                # if self.direction[0] > 0:
-                #     new_y_dir = randint(-1, 1)
-                # else:
-                #     new_y_dir = randint(0, 2)
-                #
-                # if self.direction[1] > 0:
-                #     new_x_dir = randint(-1, 1)
-                # else:
-                #     new_x_dir = randint(0, 2)
-
+            # Make sure new direction is a valid direction
             while game.env.grid[new_pos[0], new_pos[1]] == BORDER or (self.direction[0] == 0 and self.direction[1] == 0):
-                # if self.direction[0] > 0:
-                #     new_y_dir = randint(-1, 0)
-                # else:
-                #     new_y_dir = randint(0, 1)
-                #
-                # if self.direction[1] > 0:
-                #     new_x_dir = randint(-1, 0)
-                # else:
-                #     new_x_dir = randint(0, 1)
-
                 self.direction = [choice(self.dir_list), choice(self.dir_list)]
-                #print("direction", self.direction)
                 new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
             # Set the new position
@@ -197,6 +201,7 @@ def user_controller(event, game, agent):
         new_pos = [y, x]
 
         eval_move(game, new_pos, cur_pos)
+
 
 
 def random_move(game):
@@ -294,6 +299,8 @@ def eval_move(game, new_pos, cur_pos):
         grid[y][x] = RISKYLINE # fill risky line after player
         player.risky_lane.append([y, x])
 
+
+
     player.set_position(new_pos)
     player.move_if_at_filled(game)
 
@@ -316,17 +323,11 @@ def training_ai(agent):
 
         while not done:
 
-            if ai_mode == True:
-                ai_controller(game, agent)
+            ai_controller(game, agent)
 
             for event in pygame.event.get():  # User did something
                 if event.type == pygame.QUIT:  # If user clicked close
                     done = True  # Flag that we are done so we exit this loop
-
-                if event.type == pygame.KEYDOWN and ai_mode == False:
-                    print(event.type)
-                    user_controller(event, game, agent)
-
 
             if game.env.filled_percentage >= game_won_percentage:
                 done = True
@@ -412,10 +413,13 @@ def run():
                 # print(event.type)
                 user_controller(event, game, agent)
 
-        if count_enemy % 10 == 0:
+        if count_enemy % 10 == 0: # Remember to move to AI as well
             enemy.move(game)
         #pygame.time.wait(300)
         count_enemy += 1
+
+        # Checking collisons
+        game.player.check_collision(game) # Remember to move to AI as well
 
         if game.env.filled_percentage >= game_won_percentage:
             done = True
