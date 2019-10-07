@@ -150,6 +150,7 @@ class Enemy:
         # Initialize with random direction
         self.dir_list = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
         self.direction = choice(self.dir_list)
+        self.dir_list_2 = [-1, 1]
         self.alive = True
 
     def update(self):
@@ -166,20 +167,29 @@ class Enemy:
             if game.env.within_grid(new_pos):
                 # Make sure new direction is a valid direction
                 while game.env.grid[new_pos[0], new_pos[1]] == BORDER:
-                    # self.direction = [choice(self.dir_list), choice(self.dir_list)]
 
-                    # CHECK WHICH BORDER
-                    if new_pos[0] == 0:  # TOP
-                        self.direction = [-self.direction[0], self.direction[1]]
-                    elif new_pos[1] == 0:  # LEFT
-                        self.direction = [self.direction[0], -self.direction[1]]
-                    elif new_pos[0] == GRID_SIZE - 1 :  # BOTTOM
-                        self.direction = [-self.direction[0], self.direction[1]]
-                    elif new_pos[1] == GRID_SIZE - 1:  # RIGHT
-                        self.direction = [self.direction[0], -self.direction[1]]
-                    else:
-                        self.direction = [-self.direction[0], -self.direction[1]]
+                    # new_direction = [1, 1]
+                    # if self.direction[0] == -1 and self.direction[1] == 1:  # TOP
+                    #     print("TOP")
+                    #     new_direction = [1, 1]
+                    # elif self.direction[0] == 1 and self.direction[1] == 1:  # RIGHT
+                    #     print("RIGHT")
+                    #     new_direction = [1, -1]
+                    # elif self.direction[0] == 1 and self.direction[1] == -1:  # BOTTOM
+                    #     print("BOTTOM")
+                    #     new_direction = [-1, -1]
+                    #     print("new in bottom", new_direction)
+                    # elif self.direction[0] == -1 and self.direction[1] == -1:
+                    #     print("LEFT")
+                    #     new_direction = [-1, 1]
+                    # self.direction = new_direction
+                    # print("newwww", new_direction)
+                    # print("direction", self.direction)
+                    # new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+                    # print("new pos", new_pos)
 
+                    # RANDOMNESS
+                    self.direction = [choice(self.dir_list_2), choice(self.dir_list_2)]
                     new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
                 # Set the new position
@@ -446,7 +456,7 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 0)
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 1)
     enemies = game.enemies
 
     agent.init_agent(game)
