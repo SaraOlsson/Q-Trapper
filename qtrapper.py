@@ -32,22 +32,36 @@ from helperfunctions import *
 # models_file = open("models.npy","wb")
 
 
-ai_mode = True
+ai_mode = False
 speed = 30
 game_won_percentage = 0.8
-game_iterations = 50
+game_iterations = 1
 show_plot = False
 show_training = False
 
 # file options
 save_q_table = False
-load_q_table = True
+load_q_table = False
 
-player_sprite = pygame.image.load('sprites/turtle.png');
+player_sprite = pygame.image.load('sprites/turtle_up.png');
+playfield_sprite = pygame.image.load('sprites/water.png');
+enemy_sprite = pygame.image.load('sprites/shark.png');
+border_sprite = pygame.image.load('sprites/shallow_beach.png');
+riskyline_sprite = pygame.image.load('sprites/risky_water.png');
+fill_sprite = pygame.image.load('sprites/beach.png');
+
+# DOWN, RIGHT, UP, LEFT
+player_sprites = [pygame.image.load('sprites/turtle_down.png'),
+                 pygame.image.load('sprites/turtle_right.png'),
+                 pygame.image.load('sprites/turtle_up.png'),
+                 pygame.image.load('sprites/turtle_left.png')]
 
 # number of enemies
 num_enemies_training = 2
 num_enemies_game = 1
+
+# visual appearence
+draw_tiles = True
 
 class Game:
 
@@ -430,13 +444,21 @@ def draw_game(game):
         for column in range(GRID_SIZE):
 
             if grid[row][column] == PLAYFIELD: # if risky line
+
                 color = GRAY
+                sprite = playfield_sprite
+
             elif grid[row][column] == RISKYLINE: # if risky line
                 color = BLUE
+                sprite = riskyline_sprite
+
             elif grid[row][column] == BORDER: # if border
                 color = DARKGREEN
+                sprite = border_sprite
+
             elif grid[row][column] == FILL: # if fill
                 color = ORANGE
+                sprite = fill_sprite
 
             # color the cell where the agent is
             #if row == player.y and column == player.x:
@@ -450,12 +472,25 @@ def draw_game(game):
                     else:
                         color = BLACK
 
-            pygame.draw.rect(game.gameDisplay,
-                             color,
-                             [(MARGIN + WIDTH) * column + MARGIN,
-                              (MARGIN + HEIGHT) * row + MARGIN,
-                              WIDTH,
-                              HEIGHT])
+            if draw_tiles == True:
+
+                blit_x = (MARGIN + WIDTH) * column + MARGIN/2
+                blit_y = (MARGIN + HEIGHT) * row + MARGIN/2
+                game.gameDisplay.blit(sprite, (blit_x, blit_y))
+
+                # blit enemy cells
+                for enemy in enemies:
+                    if row == enemy.y and column == enemy.x:
+                        game.gameDisplay.blit(enemy_sprite, (blit_x, blit_y))
+
+            else:
+
+                pygame.draw.rect(game.gameDisplay,
+                                 color,
+                                 [(MARGIN + WIDTH) * column + MARGIN,
+                                  (MARGIN + HEIGHT) * row + MARGIN,
+                                  WIDTH,
+                                  HEIGHT])
 
 
     player_blit_x = (MARGIN + WIDTH) * player.x + MARGIN/2
