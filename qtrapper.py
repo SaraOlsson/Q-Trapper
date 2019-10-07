@@ -37,11 +37,11 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = True
+ai_mode = False
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 300
-show_plot = True
+game_iterations = 100
+show_plot = False
 
 player_sprite = pygame.image.load('sprites/turtle.png');
 
@@ -156,8 +156,19 @@ class Enemy:
             new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
             if game.env.within_grid(new_pos):
                 # Make sure new direction is a valid direction
-                while game.env.grid[new_pos[0], new_pos[1]] == BORDER or (self.direction[0] == 0 and self.direction[1] == 0):
-                    self.direction = [choice(self.dir_list), choice(self.dir_list)]
+                while game.env.grid[new_pos[0], new_pos[1]] == BORDER:
+                    # self.direction = [choice(self.dir_list), choice(self.dir_list)]
+
+                    # CHECK WHICH BORDER
+                    if new_pos[0] == 0:  # TOP
+                        self.direction = [-self.direction[0], self.direction[1]]
+                    elif new_pos[1] == 0:  # LEFT
+                        self.direction = [self.direction[0], -self.direction[1]]
+                    elif new_pos[0] == GRID_SIZE - 1 :  # BOTTOM
+                        self.direction = [-self.direction[0], self.direction[1]]
+                    elif new_pos[1] == GRID_SIZE - 1:  # RIGHT
+                        self.direction = [self.direction[0], -self.direction[1]]
+
                     new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
                 # Set the new position
@@ -281,14 +292,18 @@ def training_ai(agent):
     score_plot = []
     counter_plot = []
 
+
     while counter_games < game_iterations:
         # print training progress
         if counter_games % 10 == 0:
             print("Iteration", counter_games)
 
         # Initialize classes
-        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE)
+        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
         agent.init_agent(game)
+        enemy = game.enemy
+        # counter for enemy movement
+        count_enemy = 0
 
         # Loop until the user clicks the close button.
         done = False
@@ -307,9 +322,22 @@ def training_ai(agent):
                 #print("GAME WON")
                 #print(agent.q_table)
 
+            if count_enemy % 10 == 0: # Remember to move to AI as well
+                enemy.move(game)
+            count_enemy += 1
+
+            # Checking collisons
+            game.player.check_collision(game) # Remember to move to AI as well
+
             steps_required += 1
             score_plot.append(steps_required)
             counter_plot.append(counter_games)
+
+            draw_game(game)
+
+            # Limit to 60 frames per second, then update the screen
+            game.clock.tick(60)
+            pygame.display.flip() # alternative: pygame.display.update()
 
             #print("game.score_plot", game.score_plot)
             #print("game.counter_plot", game.counter_plot)
@@ -406,9 +434,8 @@ def run():
                 # print(event.type)
                 user_controller(event, game, agent)
 
-        if count_enemy % 30 == 0: # Remember to move to AI as well
+        if count_enemy % 10 == 0: # Remember to move to AI as well
             enemy.move(game)
-        #pygame.time.wait(300)
         count_enemy += 1
 
         # Checking collisons
