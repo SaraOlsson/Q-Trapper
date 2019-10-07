@@ -31,17 +31,16 @@ from helperfunctions import *
 
 # models_file = open("models.npy","wb")
 
-
 ai_mode = True
-speed = 50
+speed = 10
 game_won_percentage = 0.8
-game_iterations = 3
+game_iterations = 50
 show_plot = False
-show_training = True
+show_training = False
 
 # file options
 save_q_table = False
-load_q_table = False
+load_q_table = True
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');

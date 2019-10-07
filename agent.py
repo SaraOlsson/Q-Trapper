@@ -38,6 +38,7 @@ class Agent:
         self.gamma = 0.8
 
         self.prev_action_index = 0;
+        self.ping_pong_times = 0;
         #self.init_agent()
         print(self.q_table)
 
@@ -65,7 +66,11 @@ class Agent:
 
         # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
-            reward -= 2
+            self.ping_pong_times += 1
+            reward -= 2*self.ping_pong_times
+            #print("ping_pong_times", self.ping_pong_times)
+        else:
+            self.ping_pong_times = 0
             #print("pos is prev_pos")
 
         # if action will close an area
@@ -174,7 +179,7 @@ class Agent:
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
             # check if temp_pos is within grid
-            if self.game.env.within_grid(temp_pos):
+            if self.game.env.within_grid(temp_pos) and self.game.env.grid[temp_pos[0]][temp_pos[1]] != FILL:
                 break
 
         # update table
