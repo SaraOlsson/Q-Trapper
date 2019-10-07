@@ -48,7 +48,7 @@ player_sprite = pygame.image.load('sprites/turtle.png');
 
 class Game:
 
-    def __init__(self, game_width, game_height, grid_size, show=False):
+    def __init__(self, game_width, game_height, grid_size, show=False, num_enemies=1):
         if show:
             pygame.display.set_caption('Q-Trapper')
             self.game_width = game_width
@@ -60,8 +60,10 @@ class Game:
         self.score = 0
         self.steps_required = 0
 
-        # enemy prototype
-        self.enemy = Enemy()
+        # enemies prototype
+        self.enemies = []
+        for n in range(num_enemies):
+            self.enemies.append(Enemy())
 
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
@@ -110,37 +112,38 @@ class Player(object):
 
             self.set_position(BFS_results)
 
-    def check_collision(self, game):
-        enemy = game.enemy
+    def check_collisions(self, game):
+        enemies = game.enemies
         grid = game.env.grid
         # Only check collisions when we have a lane
         if self.going_risky:
             for risk_pos in self.risky_lane:
-                # If player risky lane collides with enemy
-                if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
-                    # BFS search for where to move player
-                    start_queue = queue.Queue()
-                    start_queue.put((self.x,self.y))
-                    BFS_results = BFS(start_queue, game, BORDER)
-                    self.set_position(BFS_results)
+                # Check for all enemies
+                for enemy in enemies:
+                    # If player risky lane collides with enemy
+                    if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
+                        # BFS search for where to move player
+                        start_queue = queue.Queue()
+                        start_queue.put((self.x,self.y))
+                        BFS_results = BFS(start_queue, game, BORDER)
+                        self.set_position(BFS_results)
 
-                    # Mark all cells in risky_lane as playfield
-                    for cell in self.risky_lane:
-                        grid[cell[0]][cell[1]] = PLAYFIELD
+                        # Mark all cells in risky_lane as playfield
+                        for cell in self.risky_lane:
+                            grid[cell[0]][cell[1]] = PLAYFIELD
 
-                    self.risky_lane.clear()
-                    break
-
-
+                        self.risky_lane.clear()
+                        break
 
 
 class Enemy:
     def __init__(self):
-        self.y = 15
-        self.x = 10
+        self.y = randint(1, 19)
+        self.x = randint(1, 19)
         self.position = [self.y, self.x]
-        self.direction = [1, 1]
-        self.dir_list = [-1, 1]
+        # Initialize with random direction
+        self.dir_list = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
+        self.direction = choice(self.dir_list)
         self.alive = True
 
     def update(self):
@@ -168,6 +171,8 @@ class Enemy:
                         self.direction = [-self.direction[0], self.direction[1]]
                     elif new_pos[1] == GRID_SIZE - 1:  # RIGHT
                         self.direction = [self.direction[0], -self.direction[1]]
+                    else:
+                        self.direction = [-self.direction[0], -self.direction[1]]
 
                     new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
@@ -182,7 +187,7 @@ def user_controller(event, game, agent):
 
     grid = game.env.grid
     player = game.player
-    enemy = game.enemy
+    enemies = game.enemies
 
     if event.type == pygame.MOUSEBUTTONDOWN: # doesn't work rn since only keydown events are passed
         # User clicks the mouse. Get the position
@@ -301,8 +306,8 @@ def training_ai(agent):
         # Initialize classes
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
         agent.init_agent(game)
-        enemy = game.enemy
-        # counter for enemy movement
+        enemies = game.enemies
+        # counter for enemies movement
         count_enemy = 0
 
         # Loop until the user clicks the close button.
@@ -323,11 +328,12 @@ def training_ai(agent):
                 #print(agent.q_table)
 
             if count_enemy % 10 == 0: # Remember to move to AI as well
-                enemy.move(game)
+                for enemy in enemies:
+                    enemy.move(game)
             count_enemy += 1
 
             # Checking collisons
-            game.player.check_collision(game) # Remember to move to AI as well
+            game.player.check_collisions(game) # Remember to move to AI as well
 
             steps_required += 1
             score_plot.append(steps_required)
@@ -356,7 +362,7 @@ def draw_game(game):
     game.gameDisplay.fill(DARKGRAY)
     grid = game.env.grid
     player = game.player
-    enemy = game.enemy
+    enemies = game.enemies
 
     # Draw the grid
     for row in range(GRID_SIZE):
@@ -376,8 +382,9 @@ def draw_game(game):
             #    color = GREEN
 
             # color enemy cells
-            if row == enemy.y and column == enemy.x:
-                color = DARKRED
+            for enemy in enemies:
+                if row == enemy.y and column == enemy.x:
+                    color = DARKRED
 
             pygame.draw.rect(game.gameDisplay,
                              color,
@@ -407,8 +414,8 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
-    enemy = game.enemy
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 2)
+    enemies = game.enemies
 
     agent.init_agent(game)
 
@@ -435,11 +442,12 @@ def run():
                 user_controller(event, game, agent)
 
         if count_enemy % 10 == 0: # Remember to move to AI as well
-            enemy.move(game)
+            for enemy in enemies:
+                enemy.move(game)
         count_enemy += 1
 
         # Checking collisons
-        game.player.check_collision(game) # Remember to move to AI as well
+        game.player.check_collisions(game) # Remember to move to AI as well
 
         if game.env.filled_percentage >= game_won_percentage:
             done = True

@@ -59,7 +59,7 @@ class Flood():
 
     def find_if_enemy(self, cell, enemy_list):
         ##print("find_if_enemy")
-        enemy = self.game.enemy
+        enemies = self.game.enemies
         r, c = cell
         # get neighbours of cell
         fill_neighbours = self.env.neighbours(r, c)
@@ -67,16 +67,17 @@ class Flood():
         for neighbour in fill_neighbours:
 
             n_r, n_c = neighbour
-            if n_r == enemy.y and n_c == enemy.x and neighbour not in enemy_list:
-                #print("enemy trapped at", neighbour)
-                enemy.alive = False
-                enemy_list.append(neighbour)
-                # return True
+            for enemy in enemies:
+                if n_r == enemy.y and n_c == enemy.x and neighbour not in enemy_list:
+                    #print("enemy trapped at", neighbour)
+                    enemy.alive = False
+                    enemy_list.append(neighbour)
+                    # return True
 
     def update_grid_values(self, player):
 
         grid = self.env.grid
-        enemy = self.game.enemy
+        enemies = self.game.enemies
         found = False
         enemy_list = []
 
@@ -117,7 +118,7 @@ class Flood():
     # reqursive
     def flood_fill(self, r, c, celltype):
         grid = self.env.grid
-        enemy = self.game.enemy
+        enemies = self.game.enemies
 
         #if r == enemy.y and c == enemy.x:
         #    print("enemy trapped")
