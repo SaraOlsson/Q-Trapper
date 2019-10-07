@@ -33,9 +33,9 @@ from helperfunctions import *
 
 
 ai_mode = True
-speed = 10
+speed = 30
 game_won_percentage = 0.8
-game_iterations = 100
+game_iterations = 150
 show_plot = False
 show_training = False
 
@@ -117,6 +117,9 @@ class Player(object):
     def check_collisions(self, game):
         enemies = game.enemies
         grid = game.env.grid
+
+        game.env.instant_player_died = False
+
         # Only check collisions when we have a lane
         if self.going_risky:
             for risk_pos in self.risky_lane:
@@ -125,6 +128,7 @@ class Player(object):
                     # If player risky lane collides with enemy
                     if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
 
+                        game.env.instant_player_died = True
                         # print("enemy position: ", self.position)
 
                         # BFS search for where to move player
@@ -467,7 +471,7 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 1)
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 2)
     enemies = game.enemies
 
     agent.init_agent(game)

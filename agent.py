@@ -79,6 +79,10 @@ class Agent:
 
         #print("get_reward", self.game.env.instant_fill_increase)
 
+        if self.game.env.instant_player_died == True:
+            print("player died, NEG REWARD")
+            return -20
+
         if self.game.env.instant_fill_increase > 0:
 
             # print("instant_fill_increase", self.game.env.instant_fill_increase)

@@ -17,6 +17,7 @@ class Enviroment:
 
         self.filled_percentage = 0
         self.instant_fill_increase = 0
+        self.instant_player_died = False;
 
     """
     def is_cell_celltype(self, cell, celltype):
