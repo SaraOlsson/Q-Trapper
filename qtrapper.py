@@ -40,8 +40,8 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 30
-show_plot = False
+game_iterations = 300
+show_plot = True
 
 player_sprite = pygame.image.load('sprites/turtle.png');
 
@@ -316,6 +316,8 @@ def training_ai(agent):
 
         # one game done
         counter_games += 1
+        agent.exploration_rate = agent.exploration_rate - 0.002 if agent.exploration_rate > 0.1 else agent.exploration_rate
+        print("agent.exploration_rate", agent.exploration_rate)
 
     if show_plot == True:
         plot_seaborn(counter_plot, score_plot)
