@@ -29,20 +29,19 @@ from flood import *
 from agent import Agent
 from helperfunctions import *
 
-models_file = open("models.npy","wb")
-#models_file_read = open("models.npy","rb")
+# models_file = open("models.npy","wb")
 
-#loaded_q_table = np.load("models.npy")
-## read with np.load(models_file) and set q_table with it?
-
-#print(loaded_q_table)
 
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 150
+game_iterations = 100
 show_plot = False
 show_training = False
+
+# file options
+save_q_table = False
+load_q_table = True
 
 player_sprite = pygame.image.load('sprites/turtle.png');
 
@@ -440,15 +439,27 @@ def draw_game(game):
     player_blit_y = (MARGIN + HEIGHT) * player.y + MARGIN/2
     game.gameDisplay.blit(player_sprite, (player_blit_x, player_blit_y))
 
+def load_q_table_from_file(agent):
+
+    loaded_q_table = np.load("models.npy")
+
+    print("loaded_q_table", loaded_q_table.shape)
+    print("agent.q_table", agent.q_table.shape)
+
+    assert loaded_q_table.shape == agent.q_table.shape, "shapes does not agree"
+
+    agent.q_table = loaded_q_table
+
+    # print(loaded_q_table)
 
 def run():
 
-
     pygame.init()
-
     agent = Agent()
 
-    if ai_mode == True:
+    if load_q_table == True:
+        load_q_table_from_file(agent)
+    elif ai_mode == True: # or both load and train!
         # Train AI off screen
         training_ai(agent)
 
@@ -506,9 +517,9 @@ def run():
         pygame.display.flip() # alternative: pygame.display.update()
         game.steps_required += 1
 
-    #to_save = np.arange(10)
-    np.save("models", agent.q_table)
-
+    # save q_table to file
+    if save_q_table == True:
+        np.save("models", agent.q_table)
 
 
     #pygame.time.wait(5000) # pause before quit
