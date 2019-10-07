@@ -21,7 +21,7 @@ Game structure:
 import pygame
 import numpy as np
 import copy
-from random import randint, choice
+from random import randint, choice, uniform
 import queue
 from constants import *
 from enviroment import *
@@ -32,12 +32,12 @@ from helperfunctions import *
 # models_file = open("models.npy","wb")
 
 
-ai_mode = False
-speed = 30
+ai_mode = True
+speed = 50
 game_won_percentage = 0.8
-game_iterations = 1
+game_iterations = 3
 show_plot = False
-show_training = False
+show_training = True
 
 # file options
 save_q_table = False
@@ -45,16 +45,12 @@ load_q_table = False
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');
+playfield_special_sprite = pygame.image.load('sprites/water_light_wave2.png');
 enemy_sprite = pygame.image.load('sprites/shark.png');
+enemy_dead_sprite = pygame.image.load('sprites/gravestone.png');
 border_sprite = pygame.image.load('sprites/shallow_beach.png');
 riskyline_sprite = pygame.image.load('sprites/risky_water.png');
 fill_sprite = pygame.image.load('sprites/beach.png');
-
-# DOWN, RIGHT, UP, LEFT
-player_sprites = [pygame.image.load('sprites/turtle_down.png'),
-                 pygame.image.load('sprites/turtle_right.png'),
-                 pygame.image.load('sprites/turtle_up.png'),
-                 pygame.image.load('sprites/turtle_left.png')]
 
 # number of enemies
 num_enemies_training = 2
@@ -104,6 +100,14 @@ class Player(object):
         self.going_risky = False
         self.risky_lane = []
         self.closest_enemy_dist = INF_DIST
+
+        # DOWN, RIGHT, UP, LEFT
+        self.player_sprites = [pygame.image.load('sprites/turtle_down.png'),
+                              pygame.image.load('sprites/turtle_right.png'),
+                              pygame.image.load('sprites/turtle_up.png'),
+                              pygame.image.load('sprites/turtle_left.png')]
+
+        self.sprite_idx = 1
 
     def set_position(self, new_pos):
 
@@ -326,7 +330,14 @@ def eval_move(game, new_pos, cur_pos):
 
     y, x = new_pos
 
+    # change sprite idx
+    step_made = [new_pos[0]-cur_pos[0], new_pos[1]-cur_pos[1]]
+    step_list = [[1, 0], [0, 1], [-1, 0], [0, -1]]
+    player.sprite_idx = step_list.index(step_made) if step_made in step_list else 1 # sprite_idx is gobal
+
     if grid[y][x] == FILL:
+
+        print("should not happend with AI controller")
 
         # if player can move to border
         if game.env.can_move(player.position, BORDER): # needed?
@@ -384,7 +395,7 @@ def training_ai(agent):
 
         # Loop until the user clicks the close button.
         done = False
-        steps_required = 0
+        game.steps_required = 0
 
         while not done:
 
@@ -409,8 +420,8 @@ def training_ai(agent):
             # Checking collisons
             game.player.check_collisions(game) # Remember to move to AI as well
 
-            steps_required += 1
-            score_plot.append(steps_required)
+            game.steps_required += 1
+            score_plot.append(game.steps_required)
             counter_plot.append(counter_games)
 
             if show_training == True:
@@ -439,6 +450,11 @@ def draw_game(game):
     player = game.player
     enemies = game.enemies
 
+    #print("game.steps_required", game.steps_required)
+
+    if (game.steps_required % 100 == 0 or game.steps_required == 1):
+        game.env.special_tiles.generate_special_tiles()
+
     # Draw the grid
     for row in range(GRID_SIZE):
         for column in range(GRID_SIZE):
@@ -446,7 +462,14 @@ def draw_game(game):
             if grid[row][column] == PLAYFIELD: # if risky line
 
                 color = GRAY
-                sprite = playfield_sprite
+                #print("game.clock", time.time())
+
+                #if (game.steps_required % 10 == 0 and uniform(0, 1) < 0.2):
+
+                if [row, column] in game.env.special_tiles.cells:
+                    sprite = playfield_special_sprite
+                else:
+                    sprite = playfield_sprite
 
             elif grid[row][column] == RISKYLINE: # if risky line
                 color = BLUE
@@ -481,7 +504,11 @@ def draw_game(game):
                 # blit enemy cells
                 for enemy in enemies:
                     if row == enemy.y and column == enemy.x:
-                        game.gameDisplay.blit(enemy_sprite, (blit_x, blit_y))
+                        if enemy.alive == True:
+                            game.gameDisplay.blit(enemy_sprite, (blit_x, blit_y))
+                        else:
+                            game.gameDisplay.blit(enemy_dead_sprite, (blit_x, blit_y))
+
 
             else:
 
@@ -495,7 +522,7 @@ def draw_game(game):
 
     player_blit_x = (MARGIN + WIDTH) * player.x + MARGIN/2
     player_blit_y = (MARGIN + HEIGHT) * player.y + MARGIN/2
-    game.gameDisplay.blit(player_sprite, (player_blit_x, player_blit_y))
+    game.gameDisplay.blit(player.player_sprites[player.sprite_idx], (player_blit_x, player_blit_y))
 
 def load_q_table_from_file(agent):
 
@@ -537,6 +564,9 @@ def run():
     count_enemy = 0
 
     game.steps_required = 0
+
+    # for graphics
+    special_playfield_tiles = []
 
     while not done:
 

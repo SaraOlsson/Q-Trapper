@@ -1,4 +1,5 @@
 import numpy as np
+from random import choice
 from constants import *
 
 """
@@ -14,6 +15,7 @@ class Enviroment:
         self.grid = np.full((grid_size, grid_size), 2)
         self.grid[1:-1, 1:-1] = PLAYFIELD
         self.grid_size = grid_size
+        self.special_tiles = SpecialTiles(self)
 
         self.filled_percentage = 0
         self.instant_fill_increase = 0
@@ -91,3 +93,24 @@ class Enviroment:
                 move_is_celltype = True
 
         return move_is_celltype
+
+class SpecialTiles():
+
+    def __init__(self, env):
+        self.env = env
+        self.cells = [] #
+        self.generate_special_tiles()
+
+    def generate_special_tiles(self):
+
+        self.cells.clear()
+        playfield_cells = self.env.find_cells(PLAYFIELD)
+        #indexes = np.arange(playfield_cells.shape[0])
+        num_specials = np.rint(len(playfield_cells) / 16 ).astype(np.int64)
+        #specials = []
+
+        for i in range(num_specials):
+            cell = choice(playfield_cells)
+            self.cells.append(cell)
+
+        #return specials

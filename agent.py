@@ -99,6 +99,7 @@ class Agent:
     # get best action index based on transition reward
     def get_best_move(self, cur_pos):
 
+        grid = self.game.env.grid
         # val should be based on qtable!
         q_values = self.q_table[self.cur_state]
 
@@ -114,7 +115,7 @@ class Agent:
             move = self.actions[idx]
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
-            if self.game.env.within_grid(temp_pos):
+            if self.game.env.within_grid(temp_pos) and grid[temp_pos[0]][temp_pos[1]] != FILL:
 
                 val += self.get_transition_reward(temp_pos, idx)
                 if (val > max):
