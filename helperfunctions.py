@@ -2,6 +2,7 @@ import queue
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from constants import *
 
 def BFS(queue, game, celltype):
 
@@ -52,3 +53,56 @@ def plot_seaborn(array_counter, array_score):
     ax = sns.regplot(np.array([array_counter])[0], np.array([array_score])[0], color="b", x_jitter=.1, line_kws={'color':'green'})
     ax.set(xlabel='game iteration', ylabel='steps required')
     plt.show()
+
+def get_new_enemy_dir(direction, enemy_pos, new_pos, game):
+
+    new_dir = [-5,-5]
+
+    if direction == [1,1]: # towards bottomright corner
+
+        new_dir = [-1, 1]
+        cell_to_right = [enemy_pos[0], enemy_pos[1] + 1 ]
+
+        if game.env.grid[cell_to_right[0], cell_to_right[1] ] == BORDER:
+            if cell_to_right == [new_pos[0] - 1, new_pos[1]]:
+                new_dir = [1, -1]
+
+    elif direction == [1,-1]: # towards bottomleft corner
+
+        new_dir = [-1, -1]
+        cell_to_left = [enemy_pos[0], enemy_pos[1] - 1 ]
+
+        if game.env.grid[cell_to_left[0], cell_to_left[1] ] == BORDER:
+            if cell_to_left == [new_pos[0] - 1, new_pos[1]]:
+                new_dir = [1, 1]
+
+
+    elif direction == [-1,1]: # towards topright corner
+
+        new_dir = [1, 1]
+        cell_to_right = [enemy_pos[0], enemy_pos[1] + 1 ]
+
+        if game.env.grid[cell_to_right[0], cell_to_right[1] ] == BORDER:
+            if cell_to_right == [new_pos[0] + 1, new_pos[1]]:
+                new_dir = [-1, -1]
+
+
+    elif direction == [-1,-1]: # towards topleft corner
+
+        new_dir = [1, -1]
+        cell_to_left = [enemy_pos[0], enemy_pos[1] - 1 ]
+        cell_to_up = [enemy_pos[0] - 1, enemy_pos[1] ]
+
+        # is left?
+        if game.env.grid[cell_to_left[0], cell_to_left[1] ] == BORDER:
+            if cell_to_left == [new_pos[0] + 1, new_pos[1]]:
+                new_dir = [-1, 1]
+        # # is top?
+        # elif game.env.grid[cell_to_up[0], cell_to_up[1] ] == BORDER:
+        #     if cell_to_up == [new_pos[0], new_pos[1] + 1]:
+        #         new_dir = [1, -1]
+        #     else:
+        #         new_dir = [-1, -1]
+
+
+    return new_dir

@@ -35,7 +35,7 @@ from helperfunctions import *
 ai_mode = True
 speed = 30
 game_won_percentage = 0.8
-game_iterations = 150
+game_iterations = 50
 show_plot = False
 show_training = False
 
@@ -45,6 +45,9 @@ load_q_table = True
 
 player_sprite = pygame.image.load('sprites/turtle.png');
 
+# number of enemies
+num_enemies_training = 2
+num_enemies_game = 1
 
 class Game:
 
@@ -147,8 +150,8 @@ class Player(object):
 
 class Enemy:
     def __init__(self):
-        self.y = randint(1, 19)
-        self.x = randint(1, 19)
+        self.y = randint(2, 18)
+        self.x = randint(2, 18)
         self.position = [self.y, self.x]
         # Initialize with random direction
         self.dir_list = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
@@ -167,41 +170,54 @@ class Enemy:
 
         if self.alive == True:
             new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+            # set_new_pos = True
             if game.env.within_grid(new_pos):
-                # Make sure new direction is a valid direction
-                while game.env.grid[new_pos[0], new_pos[1]] == BORDER:
 
-                    # new_direction = [1, 1]
-                    # if self.direction[0] == -1 and self.direction[1] == 1:  # TOP
-                    #     print("TOP")
-                    #     new_direction = [1, 1]
-                    # elif self.direction[0] == 1 and self.direction[1] == 1:  # RIGHT
-                    #     print("RIGHT")
-                    #     new_direction = [1, -1]
-                    # elif self.direction[0] == 1 and self.direction[1] == -1:  # BOTTOM
-                    #     print("BOTTOM")
-                    #     new_direction = [-1, -1]
-                    #     print("new in bottom", new_direction)
-                    # elif self.direction[0] == -1 and self.direction[1] == -1:
-                    #     print("LEFT")
-                    #     new_direction = [-1, 1]
-                    # self.direction = new_direction
-                    # print("newwww", new_direction)
-                    # print("direction", self.direction)
-                    # new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
-                    # print("new pos", new_pos)
+                if game.env.grid[new_pos[0]][new_pos[1]] == BORDER:
+                    try_counter = 0
 
-                    # RANDOMNESS
-                    self.direction = [choice(self.dir_list_2), choice(self.dir_list_2)]
-                    new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+                    while True:
 
-                # Set the new position
-                self.position = new_pos
-                self.y = new_pos[0]
-                self.x = new_pos[1]
-                self.dist_to_risky_lane(game)
+                        # decide if top, bottom, left or right and bounce
+                        new_dir = get_new_enemy_dir(self.direction, self.position, new_pos, game)
 
+                        # RANDOMNESS
+                        # if new_dir == [-5,-5]: # unvalid
+                        #     print("new_dir is None")
+                        #     self.direction = [choice(self.dir_list_2), choice(self.dir_list_2)]
+                        # else:
+                        #     self.direction = new_dir
+                        # new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
+                        self.direction = new_dir
+                        new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+                        # check if new_pos is within grid
+                        if game.env.within_grid(new_pos) and game.env.grid[new_pos[0]][new_pos[1]] != BORDER:
+                            #print("new_pos: ", new_dir)
+                            break
+
+                        try_counter += 1
+
+                        if try_counter > 3:
+                            print("enemy is trapped")
+                            self.alive = False
+                            #set_new_pos = False
+                            #break
+                            return # leave function
+            else:
+                print("BUG: enemy new_pos is ", new_pos)
+                return # shouldn't be here though
+
+            #if set_new_pos == True:
+            self.position = new_pos
+            self.y = new_pos[0]
+            self.x = new_pos[1]
+
+            self.dist_to_risky_lane(game)
+
+    # TODO is enemy moving toward player or away from?
     # find closest distance from this enemy to riskylane
     def dist_to_risky_lane(self, game):
 
@@ -346,7 +362,7 @@ def training_ai(agent):
             print("Iteration", counter_games)
 
         # Initialize classes
-        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, 0)
+        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, num_enemies_training)
         agent.init_agent(game)
         enemies = game.enemies
         # counter for enemies movement
@@ -429,7 +445,10 @@ def draw_game(game):
             # color enemy cells
             for enemy in enemies:
                 if row == enemy.y and column == enemy.x:
-                    color = DARKRED
+                    if enemy.alive == True:
+                        color = DARKRED
+                    else:
+                        color = BLACK
 
             pygame.draw.rect(game.gameDisplay,
                              color,
@@ -471,7 +490,7 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 2)
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, num_enemies_game)
     enemies = game.enemies
 
     agent.init_agent(game)

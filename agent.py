@@ -56,21 +56,21 @@ class Agent:
         y_cur, x_cur = player.position
         y_prev, x_prev = player.prev_pos
 
-
         if grid[y][x] == PLAYFIELD:
+            reward += 1
 
             # positive reward if keeping same direction
-            if move_idx == self.prev_action_index:
-                reward += 2
-
-                #print("like prev index!")
-        #elif grid[y][x] == BORDER:
-        #    reward += 1
+        if move_idx == self.prev_action_index:
+            reward += 2
 
         # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
             reward -= 2
             #print("pos is prev_pos")
+
+        # if action will close an area
+        if grid[y][x] == BORDER and len(player.risky_lane) > 1:
+            reward += 2
 
         return reward
 
@@ -80,7 +80,7 @@ class Agent:
         #print("get_reward", self.game.env.instant_fill_increase)
 
         if self.game.env.instant_player_died == True:
-            print("player died, NEG REWARD")
+            #print("player died, NEG REWARD")
             return -20
 
         if self.game.env.instant_fill_increase > 0:
@@ -123,19 +123,6 @@ class Agent:
                     #print("val > max")
 
             idx += 1
-
-        """
-        for move in self.actions:
-            temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
-
-            if self.game.env.within_grid(temp_pos):
-
-                val = self.get_transition_reward(temp_pos, idx)
-                if (val > max):
-                    max = val
-                    best_index = idx
-
-            idx += 1 """
 
         return best_index
 
