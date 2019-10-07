@@ -10,7 +10,18 @@ from constants import *
 import random
 
 # Constants
-NR_FEATURES = 9
+NR_FEATURES = 10
+
+"""
+features
+
+will action take player to:
+- playfield(4)
+- border (4)
+- length of riskylane (1)
+- is too close to enemy (1)
+
+"""
 
 
 class Agent:
@@ -45,24 +56,18 @@ class Agent:
         y_cur, x_cur = player.position
         y_prev, x_prev = player.prev_pos
 
-        if not self.game.env.within_grid([y, x]): # checked in get_best_move
-            print("SHOULD NOT HAPPEN")
-        """
-        if grid[y_cur][x_cur] == PLAYFIELD:
-
-            if move_idx == self.prev_action_index:
-                reward += 2"""
-
 
         if grid[y][x] == PLAYFIELD:
 
+            # positive reward if keeping same direction
             if move_idx == self.prev_action_index:
                 reward += 2
-                #print("like prev index!")
-        elif grid[y][x] == BORDER:
-            reward += 1
 
-        # ping pong times
+                #print("like prev index!")
+        #elif grid[y][x] == BORDER:
+        #    reward += 1
+
+        # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
             reward -= 2
             #print("pos is prev_pos")
@@ -204,6 +209,13 @@ class Agent:
         else:
             return 0
 
+    def get_is_close_enemy(self):
+
+        if self.game.player.closest_enemy_dist <= TOO_CLOSE:
+            return 1
+        else:
+            return 0
+
     def calculate_features(self, cur_pos):
         idx = 0
         for action in self.actions:
@@ -212,6 +224,12 @@ class Agent:
             idx += 1
 
         self.features[idx] = len(self.game.player.risky_lane)
+        idx += 1
+
+        self.features[idx] = self.get_is_close_enemy()
+
+        #if self.game.player.closest_enemy_dist <= TOO_CLOSE:
+        #    print( "dist to enemy only", self.game.player.closest_enemy_dist, "!!!" )
 
     def init_q_table(self, cur_):
         print("init q_table")
@@ -236,4 +254,6 @@ class Agent:
             state_index += 128
         if (self.features[8] > 10): # length of risky_lane
             state_index += 256
+        if (self.features[9] == 1): # too close to enemy
+            state_index += 512
         self.cur_state = state_index

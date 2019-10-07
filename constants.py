@@ -29,3 +29,8 @@ HEIGHT = 20
 
 # This sets the margin between each cell
 MARGIN = 5
+
+# Used for distance calculations
+INF_DIST = 10000
+
+TOO_CLOSE = 5 # in distance

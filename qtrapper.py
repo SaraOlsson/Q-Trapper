@@ -37,11 +37,12 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = False
+ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 100
+game_iterations = 150
 show_plot = False
+show_training = False
 
 player_sprite = pygame.image.load('sprites/turtle.png');
 
@@ -86,6 +87,7 @@ class Player(object):
 
         self.going_risky = False
         self.risky_lane = []
+        self.closest_enemy_dist = INF_DIST
 
     def set_position(self, new_pos):
 
@@ -102,13 +104,14 @@ class Player(object):
 
         if grid[self.y][self.x] == FILL:
 
-            # print("move me plz")
+            #print("move me plz")
             new_pos = game.env.find_cell(BORDER) # searches from topleft
 
             start_queue = queue.Queue()
             start_queue.put((self.x,self.y))
             BFS_results = BFS(start_queue, game, BORDER)
-            #print("BFS_results: ", BFS_results)
+            #print("BFS set_position: ", BFS_results)
+
 
             self.set_position(BFS_results)
 
@@ -122,6 +125,9 @@ class Player(object):
                 for enemy in enemies:
                     # If player risky lane collides with enemy
                     if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
+
+                        # print("enemy position: ", self.position)
+
                         # BFS search for where to move player
                         start_queue = queue.Queue()
                         start_queue.put((self.x,self.y))
@@ -180,6 +186,29 @@ class Enemy:
                 self.position = new_pos
                 self.y = new_pos[0]
                 self.x = new_pos[1]
+                self.dist_to_risky_lane(game)
+
+
+    # find closest distance from this enemy to riskylane
+    def dist_to_risky_lane(self, game):
+
+        player = game.player
+        min_dist = INF_DIST # from enemy to cell
+
+        # find which cell in risky lane is closest to this enemy
+        for cell in player.risky_lane:
+
+            #print("min_dist", min_dist)
+            # calculate manhattan distance
+            distance = abs(self.y - cell[0]) + abs(self.x - cell[1])
+            #print("distance", distance)
+            if distance < min_dist:
+                min_dist = distance
+
+        # update closest_enemy_dist if a riskyline currently exists and was smaller than for any other enemy
+        if min_dist < INF_DIST:
+            #print("enemy at distance", min_dist, "from riskyline")
+            player.closest_enemy_dist = min_dist if min_dist < player.closest_enemy_dist else player.closest_enemy_dist
 
 
 
@@ -304,7 +333,7 @@ def training_ai(agent):
             print("Iteration", counter_games)
 
         # Initialize classes
-        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True)
+        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, 0)
         agent.init_agent(game)
         enemies = game.enemies
         # counter for enemies movement
@@ -327,6 +356,8 @@ def training_ai(agent):
                 #print("GAME WON")
                 #print(agent.q_table)
 
+            game.player.closest_enemy_dist = INF_DIST
+
             if count_enemy % 10 == 0: # Remember to move to AI as well
                 for enemy in enemies:
                     enemy.move(game)
@@ -339,11 +370,12 @@ def training_ai(agent):
             score_plot.append(steps_required)
             counter_plot.append(counter_games)
 
-            draw_game(game)
+            if show_training == True:
+                draw_game(game)
 
-            # Limit to 60 frames per second, then update the screen
-            game.clock.tick(60)
-            pygame.display.flip() # alternative: pygame.display.update()
+                # Limit to 60 frames per second, then update the screen
+                game.clock.tick(60)
+                pygame.display.flip() # alternative: pygame.display.update()
 
             #print("game.score_plot", game.score_plot)
             #print("game.counter_plot", game.counter_plot)
@@ -351,7 +383,7 @@ def training_ai(agent):
         # one game done
         counter_games += 1
         agent.exploration_rate = agent.exploration_rate - 0.002 if agent.exploration_rate > 0.1 else agent.exploration_rate
-        print("agent.exploration_rate", agent.exploration_rate)
+        #print("agent.exploration_rate", agent.exploration_rate)
 
     if show_plot == True:
         plot_seaborn(counter_plot, score_plot)
@@ -414,7 +446,7 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 2)
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 0)
     enemies = game.enemies
 
     agent.init_agent(game)
@@ -440,6 +472,8 @@ def run():
             if event.type == pygame.KEYDOWN and ai_mode == False:
                 # print(event.type)
                 user_controller(event, game, agent)
+
+        game.player.closest_enemy_dist = INF_DIST
 
         if count_enemy % 10 == 0: # Remember to move to AI as well
             for enemy in enemies:
