@@ -68,7 +68,7 @@ class Flood():
 
             n_r, n_c = neighbour
             if n_r == enemy.y and n_c == enemy.x and neighbour not in enemy_list:
-                print("enemy trapped at", neighbour)
+                #print("enemy trapped at", neighbour)
                 enemy.alive = False
                 enemy_list.append(neighbour)
                 # return True
@@ -87,7 +87,7 @@ class Flood():
             grid[r][c] = FILL
 
             self.find_if_enemy(cell, enemy_list )
-            
+
         # check now if there is still > 1 area
 
         # fill risky lane to border

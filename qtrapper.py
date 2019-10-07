@@ -22,11 +22,11 @@ import pygame
 import numpy as np
 import copy
 from random import randint, choice
+import queue
 from constants import *
 from enviroment import *
 from flood import *
 from agent import Agent
-import queue
 from helperfunctions import *
 
 models_file = open("models.npy","wb")
@@ -37,10 +37,13 @@ models_file = open("models.npy","wb")
 
 #print(loaded_q_table)
 
-ai_mode = False
+ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 3
+game_iterations = 30
+show_plot = False
+
+player_sprite = pygame.image.load('sprites/turtle.png');
 
 
 class Game:
@@ -275,6 +278,9 @@ def eval_move(game, new_pos, cur_pos):
 def training_ai(agent):
     counter_games = 0
 
+    score_plot = []
+    counter_plot = []
+
     while counter_games < game_iterations:
         # print training progress
         if counter_games % 10 == 0:
@@ -286,6 +292,7 @@ def training_ai(agent):
 
         # Loop until the user clicks the close button.
         done = False
+        steps_required = 0
 
         while not done:
 
@@ -300,8 +307,18 @@ def training_ai(agent):
                 #print("GAME WON")
                 #print(agent.q_table)
 
+            steps_required += 1
+            score_plot.append(steps_required)
+            counter_plot.append(counter_games)
+
+            #print("game.score_plot", game.score_plot)
+            #print("game.counter_plot", game.counter_plot)
+
         # one game done
         counter_games += 1
+
+    if show_plot == True:
+        plot_seaborn(counter_plot, score_plot)
 
 def draw_game(game):
 
@@ -325,8 +342,8 @@ def draw_game(game):
                 color = ORANGE
 
             # color the cell where the agent is
-            if row == player.y and column == player.x:
-                color = GREEN
+            #if row == player.y and column == player.x:
+            #    color = GREEN
 
             # color enemy cells
             if row == enemy.y and column == enemy.x:
@@ -340,7 +357,13 @@ def draw_game(game):
                               HEIGHT])
 
 
+    player_blit_x = (MARGIN + WIDTH) * player.x + MARGIN/2
+    player_blit_y = (MARGIN + HEIGHT) * player.y + MARGIN/2
+    game.gameDisplay.blit(player_sprite, (player_blit_x, player_blit_y))
+
+
 def run():
+
 
     pygame.init()
 
@@ -364,6 +387,8 @@ def run():
 
     # counter for enemy movement
     count_enemy = 0
+
+    game.steps_required = 0
 
     while not done:
 
@@ -402,6 +427,8 @@ def run():
 
     #to_save = np.arange(10)
     np.save("models", agent.q_table)
+
+
 
     #pygame.time.wait(5000) # pause before quit
     # If you forget this line, the program will 'hang' on exit.

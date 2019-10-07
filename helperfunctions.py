@@ -1,4 +1,7 @@
 import queue
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
 
 def BFS(queue, game, celltype):
 
@@ -39,3 +42,13 @@ def random_move(game):
 
     rand_ind = randint(0, len(safe_moves) - 1)
     return safe_moves[rand_ind]
+
+def plot_seaborn(array_counter, array_score):
+
+    #print("array_counter", array_counter)
+    #print("array_score", array_score)
+
+    sns.set(color_codes=True)
+    ax = sns.regplot(np.array([array_counter])[0], np.array([array_score])[0], color="b", x_jitter=.1, line_kws={'color':'green'})
+    ax.set(xlabel='game iteration', ylabel='steps required')
+    plt.show()
