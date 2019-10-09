@@ -11,6 +11,7 @@ import random
 
 # Constants
 NR_FEATURES = 10
+MOVES = 4
 
 """
 features
@@ -26,7 +27,8 @@ will action take player to:
 
 class Agent:
     def __init__(self):
-        self.q_table = np.zeros([2**NR_FEATURES, 4])
+        self.q_table = np.zeros([2**NR_FEATURES, MOVES])
+        print("q_table shape", self.q_table.shape)
         self.features = np.zeros([NR_FEATURES])
         self.game = None # game
         self.actions = [[1, 0], [0, 1], [-1, 0], [0, -1]] # DOWN, RIGHT, UP, LEFT
@@ -92,7 +94,7 @@ class Agent:
 
         # if filled_percentage increased?
 
-    # get best action index based on transition reward
+    # get best action index based on transition and reward
     def get_best_move(self, cur_pos):
 
         # val should be based on qtable!
@@ -162,13 +164,11 @@ class Agent:
         while True:
             if self.training:
                 if (random.uniform(0, 1) < self.exploration_rate):
-                    # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
                     move_idx = random.randint(0, 3)
                 else:
                     move_idx = self.get_best_move(cur_pos)
             else:
                 if (random.uniform(0, 1) < self.exploration_rate_game):
-                    # move_idx = np.floor(random.uniform(0, 1) * 4)  # 4 possible moves
                     move_idx = random.randint(0, 3)
                 else:
                     move_idx = self.get_best_move(cur_pos)
@@ -220,6 +220,8 @@ class Agent:
         idx = 0
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action)
+            idx += 1
+        for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action, BORDER)
             idx += 1
 

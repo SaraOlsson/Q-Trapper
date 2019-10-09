@@ -40,8 +40,8 @@ models_file = open("models.npy","wb")
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 150
-show_plot = False
+game_iterations = 10000
+show_plot = True
 show_training = False
 
 player_sprite = pygame.image.load('sprites/turtle.png');
@@ -86,6 +86,7 @@ class Player(object):
         self.x_change = 1
 
         self.going_risky = False
+        self.pos_before_risky = self.position
         self.risky_lane = []
         self.closest_enemy_dist = INF_DIST
 
@@ -105,15 +106,26 @@ class Player(object):
         if grid[self.y][self.x] == FILL:
 
             #print("move me plz")
-            new_pos = game.env.find_cell(BORDER) # searches from topleft
-
-            start_queue = queue.Queue()
-            start_queue.put((self.x,self.y))
-            BFS_results = BFS(start_queue, game, BORDER)
+            # new_pos = game.env.find_cell(BORDER) # searches from topleft
+            #
+            # start_queue = queue.Queue()
+            # start_queue.put((self.x,self.y))
+            # BFS_results = BFS(start_queue, game, BORDER)
             #print("BFS set_position: ", BFS_results)
+            #print("searching")
+            rows, columns = np.where(grid == BORDER)
+            border_cells = np.stack((rows, columns), axis=1)
+            closest_border = self.position
+            #print('heeeeej')
+            if (border_cells.shape[0] != 0):
+            #     print(grid)
+            #     print(rows)
+            #     print(columns)
+            # print("border_cells", border_cells.shape)
+                _, closest_border = calculate_distance_to_cells(self, border_cells)
 
 
-            self.set_position(BFS_results)
+            self.set_position(closest_border)
 
     def check_collisions(self, game):
         enemies = game.enemies
@@ -126,13 +138,10 @@ class Player(object):
                     # If player risky lane collides with enemy
                     if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
 
-                        # print("enemy position: ", self.position)
+                        # set position to where the player left the border
+                        new_pos = [self.pos_before_risky[0], self.pos_before_risky[1]]
+                        self.set_position(new_pos)
 
-                        # BFS search for where to move player
-                        start_queue = queue.Queue()
-                        start_queue.put((self.x,self.y))
-                        BFS_results = BFS(start_queue, game, BORDER)
-                        self.set_position(BFS_results)
 
                         # Mark all cells in risky_lane as playfield
                         for cell in self.risky_lane:
@@ -152,6 +161,12 @@ class Enemy:
         self.direction = choice(self.dir_list)
         self.dir_list_2 = [-1, 1]
         self.alive = True
+
+    def set_position(self, new_pos):
+
+        self.prev_pos = copy.copy(self.position)
+        self.y, self.x = new_pos
+        self.position = [self.y, self.x]
 
     def update(self):
         print("updating")
@@ -193,9 +208,7 @@ class Enemy:
                     new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
                 # Set the new position
-                self.position = new_pos
-                self.y = new_pos[0]
-                self.x = new_pos[1]
+                self.set_position(new_pos)
                 self.dist_to_risky_lane(game)
 
 
@@ -203,17 +216,9 @@ class Enemy:
     def dist_to_risky_lane(self, game):
 
         player = game.player
-        min_dist = INF_DIST # from enemy to cell
-
-        # find which cell in risky lane is closest to this enemy
-        for cell in player.risky_lane:
-
-            #print("min_dist", min_dist)
-            # calculate manhattan distance
-            distance = abs(self.y - cell[0]) + abs(self.x - cell[1])
-            #print("distance", distance)
-            if distance < min_dist:
-                min_dist = distance
+        min_dist = INF_DIST
+        if len(player.risky_lane) > 0:
+            min_dist, _ = calculate_distance_to_cells(self, player.risky_lane)
 
         # update closest_enemy_dist if a riskyline currently exists and was smaller than for any other enemy
         if min_dist < INF_DIST:
@@ -321,6 +326,8 @@ def eval_move(game, new_pos, cur_pos):
         # when entering the playfield from border
         if not player.going_risky:
             player.going_risky = True
+            player.pos_before_risky = cur_pos
+
 
         grid[y][x] = RISKYLINE # fill risky line after player
         player.risky_lane.append([y, x])
