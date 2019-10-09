@@ -84,20 +84,36 @@ class Agent:
     # used when updating the q-table
     def get_reward(self, new_pos):
 
+        instant_fill_increase = self.game.env.instant_fill_increase
+
         #print("get_reward", self.game.env.instant_fill_increase)
 
         if self.game.env.instant_player_died == True:
             #print("player died, NEG REWARD")
             return -20
 
-        if self.game.env.instant_fill_increase > 0:
+        if instant_fill_increase > 0:
 
-            # print("instant_fill_increase", self.game.env.instant_fill_increase)
-            if self.game.env.filled_percentage >= self.game.game_won_percentage: # funkar ev inte
+            r_test = np.floor(instant_fill_increase*100)
+
+            print("instant_fill_increase", instant_fill_increase)
+
+
+            if self.game.env.filled_percentage >= self.game.game_won_percentage: # is not happening?
                 print("game won reward")
                 return 50
 
-            return 20
+            if r_test > 1: # more than one percent
+                print("r_test more", r_test*2)
+                return r_test*2
+
+            else:
+                print("r_test less ", 1)
+                return 2
+
+
+
+
 
         return -1
 
