@@ -3,20 +3,6 @@
  Sarol and Emmni jao
 
 """
-"""
-TODO:
-
-add:
-actions
-state
-score
-
-enemies
-
-Game structure:
-(started) AI or user controller
-
-"""
 
 import pygame
 import numpy as np
@@ -34,13 +20,13 @@ from helperfunctions import *
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 50
+game_iterations = 3
 show_plot = False
 show_training = False
 
 # file options
 save_q_table = False
-load_q_table = True
+load_q_table = False
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');
@@ -53,7 +39,7 @@ fill_sprite = pygame.image.load('sprites/beach.png');
 
 # number of enemies
 num_enemies_training = 2
-num_enemies_game = 1
+num_enemies_game = 3
 
 # visual appearence
 draw_tiles = True
