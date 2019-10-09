@@ -21,7 +21,7 @@ Game structure:
 import pygame
 import numpy as np
 import copy
-from random import randint, choice
+from random import randint, choice, uniform
 import queue
 from constants import *
 from enviroment import *
@@ -29,23 +29,34 @@ from flood import *
 from agent import Agent
 from helperfunctions import *
 
-models_file = open("models.npy","wb")
-#models_file_read = open("models.npy","rb")
-
-#loaded_q_table = np.load("models.npy")
-## read with np.load(models_file) and set q_table with it?
-
-#print(loaded_q_table)
+# models_file = open("models.npy","wb")
 
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 10000
-show_plot = True
+game_iterations = 50
+show_plot = False
 show_training = False
 
-player_sprite = pygame.image.load('sprites/turtle.png');
+# file options
+save_q_table = True
+load_q_table = False
 
+player_sprite = pygame.image.load('sprites/turtle_up.png');
+playfield_sprite = pygame.image.load('sprites/water.png');
+playfield_special_sprite = pygame.image.load('sprites/water_light_wave2.png');
+enemy_sprite = pygame.image.load('sprites/shark.png');
+enemy_dead_sprite = pygame.image.load('sprites/gravestone.png');
+border_sprite = pygame.image.load('sprites/shallow_beach.png');
+riskyline_sprite = pygame.image.load('sprites/risky_water.png');
+fill_sprite = pygame.image.load('sprites/beach.png');
+
+# number of enemies
+num_enemies_training = 2
+num_enemies_game = 1
+
+# visual appearence
+draw_tiles = True
 
 class Game:
 
@@ -90,6 +101,14 @@ class Player(object):
         self.risky_lane = []
         self.closest_enemy_dist = INF_DIST
 
+        # DOWN, RIGHT, UP, LEFT
+        self.player_sprites = [pygame.image.load('sprites/turtle_down.png'),
+                              pygame.image.load('sprites/turtle_right.png'),
+                              pygame.image.load('sprites/turtle_up.png'),
+                              pygame.image.load('sprites/turtle_left.png')]
+
+        self.sprite_idx = 1
+
     def set_position(self, new_pos):
 
         self.prev_pos = copy.copy(self.position)
@@ -130,6 +149,9 @@ class Player(object):
     def check_collisions(self, game):
         enemies = game.enemies
         grid = game.env.grid
+
+        game.env.instant_player_died = False
+
         # Only check collisions when we have a lane
         if self.going_risky:
             for risk_pos in self.risky_lane:
@@ -141,6 +163,8 @@ class Player(object):
                         # set position to where the player left the border
                         new_pos = [self.pos_before_risky[0], self.pos_before_risky[1]]
                         self.set_position(new_pos)
+                        game.env.instant_player_died = True
+                        # print("enemy position: ", self.position)
 
 
                         # Mark all cells in risky_lane as playfield
@@ -153,8 +177,8 @@ class Player(object):
 
 class Enemy:
     def __init__(self):
-        self.y = randint(1, 19)
-        self.x = randint(1, 19)
+        self.y = randint(2, 18)
+        self.x = randint(2, 18)
         self.position = [self.y, self.x]
         # Initialize with random direction
         self.dir_list = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
@@ -179,39 +203,54 @@ class Enemy:
 
         if self.alive == True:
             new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+            # set_new_pos = True
             if game.env.within_grid(new_pos):
-                # Make sure new direction is a valid direction
-                while game.env.grid[new_pos[0], new_pos[1]] == BORDER:
 
-                    # new_direction = [1, 1]
-                    # if self.direction[0] == -1 and self.direction[1] == 1:  # TOP
-                    #     print("TOP")
-                    #     new_direction = [1, 1]
-                    # elif self.direction[0] == 1 and self.direction[1] == 1:  # RIGHT
-                    #     print("RIGHT")
-                    #     new_direction = [1, -1]
-                    # elif self.direction[0] == 1 and self.direction[1] == -1:  # BOTTOM
-                    #     print("BOTTOM")
-                    #     new_direction = [-1, -1]
-                    #     print("new in bottom", new_direction)
-                    # elif self.direction[0] == -1 and self.direction[1] == -1:
-                    #     print("LEFT")
-                    #     new_direction = [-1, 1]
-                    # self.direction = new_direction
-                    # print("newwww", new_direction)
-                    # print("direction", self.direction)
-                    # new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
-                    # print("new pos", new_pos)
+                if game.env.grid[new_pos[0]][new_pos[1]] == BORDER:
+                    try_counter = 0
 
-                    # RANDOMNESS
-                    self.direction = [choice(self.dir_list_2), choice(self.dir_list_2)]
-                    new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+                    while True:
 
-                # Set the new position
-                self.set_position(new_pos)
-                self.dist_to_risky_lane(game)
+                        # decide if top, bottom, left or right and bounce
+                        new_dir = get_new_enemy_dir(self.direction, self.position, new_pos, game)
 
+                        # RANDOMNESS
+                        # if new_dir == [-5,-5]: # unvalid
+                        #     print("new_dir is None")
+                        #     self.direction = [choice(self.dir_list_2), choice(self.dir_list_2)]
+                        # else:
+                        #     self.direction = new_dir
+                        # new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
 
+                        self.direction = new_dir
+                        new_pos = [self.position[0] + self.direction[0], self.position[1] + self.direction[1]]
+
+                        # check if new_pos is within grid
+                        if game.env.within_grid(new_pos) and game.env.grid[new_pos[0]][new_pos[1]] != BORDER:
+                            #print("new_pos: ", new_dir)
+                            break
+
+                        try_counter += 1
+
+                        if try_counter > 3:
+                            print("enemy is trapped")
+                            self.alive = False
+                            #set_new_pos = False
+                            #break
+                            return # leave function
+            else:
+                print("BUG: enemy new_pos is ", new_pos)
+                return # shouldn't be here though
+
+            #if set_new_pos == True:
+            self.position = new_pos
+            self.y = new_pos[0]
+            self.x = new_pos[1]
+
+            self.dist_to_risky_lane(game)
+
+    # TODO is enemy moving toward player or away from?
     # find closest distance from this enemy to riskylane
     def dist_to_risky_lane(self, game):
 
@@ -298,7 +337,14 @@ def eval_move(game, new_pos, cur_pos):
 
     y, x = new_pos
 
+    # change sprite idx
+    step_made = [new_pos[0]-cur_pos[0], new_pos[1]-cur_pos[1]]
+    step_list = [[1, 0], [0, 1], [-1, 0], [0, -1]]
+    player.sprite_idx = step_list.index(step_made) if step_made in step_list else 1 # sprite_idx is gobal
+
     if grid[y][x] == FILL:
+
+        print("should not happend with AI controller")
 
         # if player can move to border
         if game.env.can_move(player.position, BORDER): # needed?
@@ -350,7 +396,7 @@ def training_ai(agent):
             print("Iteration", counter_games)
 
         # Initialize classes
-        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, 0)
+        game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, num_enemies_training)
         agent.init_agent(game)
         enemies = game.enemies
         # counter for enemies movement
@@ -358,7 +404,7 @@ def training_ai(agent):
 
         # Loop until the user clicks the close button.
         done = False
-        steps_required = 0
+        game.steps_required = 0
 
         while not done:
 
@@ -383,8 +429,8 @@ def training_ai(agent):
             # Checking collisons
             game.player.check_collisions(game) # Remember to move to AI as well
 
-            steps_required += 1
-            score_plot.append(steps_required)
+            game.steps_required += 1
+            score_plot.append(game.steps_required)
             counter_plot.append(counter_games)
 
             if show_training == True:
@@ -413,18 +459,38 @@ def draw_game(game):
     player = game.player
     enemies = game.enemies
 
+    #print("game.steps_required", game.steps_required)
+
+    if (game.steps_required % 100 == 0 or game.steps_required == 1):
+        game.env.special_tiles.generate_special_tiles()
+
     # Draw the grid
     for row in range(GRID_SIZE):
         for column in range(GRID_SIZE):
 
             if grid[row][column] == PLAYFIELD: # if risky line
+
                 color = GRAY
+                #print("game.clock", time.time())
+
+                #if (game.steps_required % 10 == 0 and uniform(0, 1) < 0.2):
+
+                if [row, column] in game.env.special_tiles.cells:
+                    sprite = playfield_special_sprite
+                else:
+                    sprite = playfield_sprite
+
             elif grid[row][column] == RISKYLINE: # if risky line
                 color = BLUE
+                sprite = riskyline_sprite
+
             elif grid[row][column] == BORDER: # if border
                 color = DARKGREEN
+                sprite = border_sprite
+
             elif grid[row][column] == FILL: # if fill
                 color = ORANGE
+                sprite = fill_sprite
 
             # color the cell where the agent is
             #if row == player.y and column == player.x:
@@ -433,29 +499,61 @@ def draw_game(game):
             # color enemy cells
             for enemy in enemies:
                 if row == enemy.y and column == enemy.x:
-                    color = DARKRED
+                    if enemy.alive == True:
+                        color = DARKRED
+                    else:
+                        color = BLACK
 
-            pygame.draw.rect(game.gameDisplay,
-                             color,
-                             [(MARGIN + WIDTH) * column + MARGIN,
-                              (MARGIN + HEIGHT) * row + MARGIN,
-                              WIDTH,
-                              HEIGHT])
+            if draw_tiles == True:
+
+                blit_x = (MARGIN + WIDTH) * column + MARGIN/2
+                blit_y = (MARGIN + HEIGHT) * row + MARGIN/2
+                game.gameDisplay.blit(sprite, (blit_x, blit_y))
+
+                # blit enemy cells
+                for enemy in enemies:
+                    if row == enemy.y and column == enemy.x:
+                        if enemy.alive == True:
+                            game.gameDisplay.blit(enemy_sprite, (blit_x, blit_y))
+                        else:
+                            game.gameDisplay.blit(enemy_dead_sprite, (blit_x, blit_y))
+
+
+            else:
+
+                pygame.draw.rect(game.gameDisplay,
+                                 color,
+                                 [(MARGIN + WIDTH) * column + MARGIN,
+                                  (MARGIN + HEIGHT) * row + MARGIN,
+                                  WIDTH,
+                                  HEIGHT])
 
 
     player_blit_x = (MARGIN + WIDTH) * player.x + MARGIN/2
     player_blit_y = (MARGIN + HEIGHT) * player.y + MARGIN/2
-    game.gameDisplay.blit(player_sprite, (player_blit_x, player_blit_y))
+    game.gameDisplay.blit(player.player_sprites[player.sprite_idx], (player_blit_x, player_blit_y))
 
+def load_q_table_from_file(agent):
+
+    loaded_q_table = np.load("models.npy")
+
+    print("loaded_q_table", loaded_q_table.shape)
+    print("agent.q_table", agent.q_table.shape)
+
+    assert loaded_q_table.shape == agent.q_table.shape, "shapes does not agree"
+
+    agent.q_table = loaded_q_table
+
+    # print(loaded_q_table)
 
 def run():
 
-
     pygame.init()
-
     agent = Agent()
 
-    if ai_mode == True:
+    if load_q_table == True:
+        load_q_table_from_file(agent)
+    elif ai_mode == True: # or both load and train!
         # Train AI off screen
         training_ai(agent)
 
@@ -463,7 +561,7 @@ def run():
     agent.training = False
 
     # Initialize classes
-    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, 1)
+    game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, num_enemies_game)
     enemies = game.enemies
 
     agent.init_agent(game)
@@ -475,6 +573,9 @@ def run():
     count_enemy = 0
 
     game.steps_required = 0
+
+    # for graphics
+    special_playfield_tiles = []
 
     while not done:
 
@@ -513,9 +614,9 @@ def run():
         pygame.display.flip() # alternative: pygame.display.update()
         game.steps_required += 1
 
-    #to_save = np.arange(10)
-    np.save("models", agent.q_table)
-
+    # save q_table to file
+    if save_q_table == True:
+        np.save("models", agent.q_table)
 
 
     #pygame.time.wait(5000) # pause before quit

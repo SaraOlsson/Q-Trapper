@@ -40,6 +40,7 @@ class Agent:
         self.gamma = 0.8
 
         self.prev_action_index = 0;
+        self.ping_pong_times = 0;
         #self.init_agent()
         print(self.q_table)
 
@@ -58,21 +59,25 @@ class Agent:
         y_cur, x_cur = player.position
         y_prev, x_prev = player.prev_pos
 
-
         if grid[y][x] == PLAYFIELD:
+            reward += 1
 
             # positive reward if keeping same direction
-            if move_idx == self.prev_action_index:
-                reward += 2
-
-                #print("like prev index!")
-        #elif grid[y][x] == BORDER:
-        #    reward += 1
+        if move_idx == self.prev_action_index:
+            reward += 2
 
         # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
-            reward -= 2
+            self.ping_pong_times += 1
+            reward -= 2*self.ping_pong_times
+            #print("ping_pong_times", self.ping_pong_times)
+        else:
+            self.ping_pong_times = 0
             #print("pos is prev_pos")
+
+        # if action will close an area
+        if grid[y][x] == BORDER and len(player.risky_lane) > 1:
+            reward += 2
 
         return reward
 
@@ -80,6 +85,10 @@ class Agent:
     def get_reward(self, new_pos):
 
         #print("get_reward", self.game.env.instant_fill_increase)
+
+        if self.game.env.instant_player_died == True:
+            #print("player died, NEG REWARD")
+            return -20
 
         if self.game.env.instant_fill_increase > 0:
 
@@ -97,6 +106,7 @@ class Agent:
     # get best action index based on transition and reward
     def get_best_move(self, cur_pos):
 
+        grid = self.game.env.grid
         # val should be based on qtable!
         q_values = self.q_table[self.cur_state]
 
@@ -112,7 +122,7 @@ class Agent:
             move = self.actions[idx]
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
-            if self.game.env.within_grid(temp_pos):
+            if self.game.env.within_grid(temp_pos) and grid[temp_pos[0]][temp_pos[1]] != FILL:
 
                 val += self.get_transition_reward(temp_pos, idx)
                 if (val > max):
@@ -121,19 +131,6 @@ class Agent:
                     #print("val > max")
 
             idx += 1
-
-        """
-        for move in self.actions:
-            temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
-
-            if self.game.env.within_grid(temp_pos):
-
-                val = self.get_transition_reward(temp_pos, idx)
-                if (val > max):
-                    max = val
-                    best_index = idx
-
-            idx += 1 """
 
         return best_index
 
@@ -182,7 +179,7 @@ class Agent:
             temp_pos = [cur_pos[0] + move[0], cur_pos[1] + move[1]]
 
             # check if temp_pos is within grid
-            if self.game.env.within_grid(temp_pos):
+            if self.game.env.within_grid(temp_pos) and self.game.env.grid[temp_pos[0]][temp_pos[1]] != FILL:
                 break
 
         # update table
