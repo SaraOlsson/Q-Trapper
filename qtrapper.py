@@ -39,7 +39,7 @@ fill_sprite = pygame.image.load('sprites/beach.png');
 
 # number of enemies
 num_enemies_training = 2
-num_enemies_game = 3
+num_enemies_game = 2
 
 # visual appearence
 draw_tiles = True
@@ -314,6 +314,7 @@ def ai_controller(game, agent):
     if filled_after > filled_before:
         game.env.instant_fill_increase = filled_after - filled_before
 
+
 # evaluate how the move changed the game and playfield status
 def eval_move(game, new_pos, cur_pos):
 
@@ -342,13 +343,48 @@ def eval_move(game, new_pos, cur_pos):
 
         # self-intersection. Handle this in a nice way?
         if grid[y][x] == RISKYLINE:
+
+            # find index of intersection
+            intersection_idx = None
+            for i in range(len(player.risky_lane)):
+                if player.risky_lane[i][0] == y and player.risky_lane[i][1] == x:
+                    intersection_idx = i
+                    break
+
+            # Set rest of list to playfield
+            for rp in player.risky_lane[intersection_idx+1:]:
+                grid[rp[0]][rp[1]] = PLAYFIELD
+
+            # remove rest of list
+            results = [player.risky_lane[idx] for idx in range(len(player.risky_lane)) if idx <= intersection_idx]
+            player.risky_lane = results
+
             intersection = True # do something with this
 
         # getting back to border
         if grid[y][x] == BORDER:
+            #print("BORDER")
             player.going_risky = False
 
-            # determin area etc
+            # check if the player has only just left border
+            #print(player.risky_lane)
+            if len(player.risky_lane) == 1:
+                # count neighbours that are playfield
+                neighbours = game.env.limited_neighbours(cur_pos[0], cur_pos[1])
+                count_playfield = 0
+
+                for n in neighbours:
+                    if grid[n[0]][n[1]] == PLAYFIELD:
+                        count_playfield += 1
+
+                # if three or more neighbours are playfield, the line is invalid
+                #print(count_playfield)
+                if count_playfield >= 3:
+                    rp = player.risky_lane[0]
+                    grid[rp[0]][rp[1]] = PLAYFIELD
+                    player.risky_lane = []
+
+            # determine area etc
             flood.flood_area(player)
             game.env.calculate_percentage(FILL)
 
