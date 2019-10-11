@@ -20,7 +20,7 @@ from helperfunctions import *
 ai_mode = True
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 1000
+game_iterations = 150
 show_plot = False
 show_training = False
 
