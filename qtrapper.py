@@ -18,15 +18,15 @@ from helperfunctions import *
 # models_file = open("models.npy","wb")
 
 ai_mode = True
-speed = 30
+speed = 10
 game_won_percentage = 0.8
-game_iterations = 150
-show_plot = False
+game_iterations = 200
+show_plot = True
 show_training = False
 
 # file options
 save_q_table = False
-load_q_table = True
+load_q_table = False
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');
@@ -144,7 +144,7 @@ class Player(object):
                 # Check for all enemies
                 for enemy in enemies:
                     # If player risky lane collides with enemy
-                    if risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
+                    if enemy.alive == True and risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
 
                         # set position to where the player left the border
                         new_pos = [self.pos_before_risky[0], self.pos_before_risky[1]]
@@ -628,6 +628,14 @@ def run():
             print("GAME WON")
             print(agent.q_table)
             print("steps_required", game.steps_required)
+
+            q_sum_per_state = np.sum(agent.q_table, axis=1)
+            print("q_sum_per_state", q_sum_per_state )
+            print("q_sum_per_state shape", q_sum_per_state.shape )
+
+            where = np.where(q_sum_per_state == 0)[0]
+
+            print("where", where.shape[0], "of", q_sum_per_state.shape[0], "is zero"  ) # 767 av 1024 when training 150 games
 
         draw_game(game)
 
