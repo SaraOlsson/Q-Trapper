@@ -10,7 +10,7 @@ from constants import *
 import random
 
 # Constants
-NR_FEATURES = 10
+NR_FEATURES = 6 #10
 MOVES = 4
 
 """
@@ -39,6 +39,10 @@ class Agent:
         self.learning_rate = 0.5
         self.gamma = 0.8
 
+        # for epsilon-greedy
+        self.epsilon = 0.1
+        self.policy = self.createEpsilonGreedyPolicy(self.q_table, self.epsilon, MOVES)
+
         self.prev_action_index = 0;
         self.ping_pong_times = 0;
         #self.init_agent()
@@ -62,7 +66,7 @@ class Agent:
         if grid[y][x] == PLAYFIELD:
             reward += 1
 
-            # positive reward if keeping same direction
+        # positive reward if keeping same direction
         if move_idx == self.prev_action_index:
             reward += 2
 
@@ -96,7 +100,7 @@ class Agent:
 
             r_test = np.floor(instant_fill_increase*100)
 
-            print("instant_fill_increase", instant_fill_increase)
+            #print("instant_fill_increase", instant_fill_increase)
 
 
             if self.game.env.filled_percentage >= self.game.game_won_percentage: # is not happening?
@@ -104,20 +108,50 @@ class Agent:
                 return 50
 
             if r_test > 1: # more than one percent
-                print("r_test more", r_test*2)
+                #print("r_test more", r_test*2)
                 return r_test*2
 
             else:
-                print("r_test less ", 1)
+                #print("r_test less ", 1)
                 return 2
-
-
-
-
 
         return -1
 
         # if filled_percentage increased?
+
+    def createEpsilonGreedyPolicy(self, q_table, epsilon, num_actions):
+        """
+        Creates an epsilon-greedy policy based
+        on a given Q-function and epsilon.
+
+        Returns a function that takes the state
+        as an input and returns the probabilities
+        for each action in the form of a numpy array
+        of length of the action space(set of possible actions).
+        """
+        def policyFunction(state):
+
+            Action_probabilities = np.ones(num_actions,
+                    dtype = float) * epsilon / num_actions
+
+            best_action = np.argmax(q_table[self.cur_state])
+            Action_probabilities[best_action] += (1.0 - epsilon)
+            return Action_probabilities
+
+        return policyFunction
+
+    def get_best_move_greedy(self, cur_pos):
+
+        # get probabilities of all actions from current state
+        action_probabilities = self.policy(self.cur_state)  # is not taking transition_reward into account
+
+        # choose action according to
+        # the probability distribution
+        action = np.random.choice(np.arange(
+                  len(action_probabilities)),
+                   p = action_probabilities)
+
+        return action
 
     # get best action index based on transition and reward
     def get_best_move(self, cur_pos):
@@ -231,9 +265,9 @@ class Agent:
 
     def calculate_features(self, cur_pos):
         idx = 0
-        for action in self.actions:
-            self.features[idx] = self.get_is_celltype(cur_pos, action)
-            idx += 1
+        # for action in self.actions:
+        #     self.features[idx] = self.get_is_celltype(cur_pos, action)
+        #     idx += 1
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action, BORDER)
             idx += 1
@@ -251,7 +285,8 @@ class Agent:
 
     def get_state_from_features(self):
         state_index = 0
-        if (self.features[0] > 0): # 0-3: is playfield
+
+        if (self.features[0] > 0): # 0-3: is border
             state_index += 1
         if (self.features[1] > 0):
             state_index += 2
@@ -259,16 +294,29 @@ class Agent:
             state_index += 4
         if (self.features[3] > 0):
             state_index += 8
-        if (self.features[4] > 0): # 0-3: is border
+        if (self.features[4] > 10): # length of risky_lane
             state_index += 16
-        if (self.features[5] > 0):
+        if (self.features[5] == 1): # too close to enemy
             state_index += 32
-        if (self.features[6] > 0):
-            state_index += 64
-        if (self.features[7] > 0):
-            state_index += 128
-        if (self.features[8] > 10): # length of risky_lane
-            state_index += 256
-        if (self.features[9] == 1): # too close to enemy
-            state_index += 512
+
+        # if (self.features[0] > 0): # 0-3: is playfield
+        #     state_index += 1
+        # if (self.features[1] > 0):
+        #     state_index += 2
+        # if (self.features[2] > 0):
+        #     state_index += 4
+        # if (self.features[3] > 0):
+        #     state_index += 8
+        # if (self.features[4] > 0): # 0-3: is border
+        #     state_index += 16
+        # if (self.features[5] > 0):
+        #     state_index += 32
+        # if (self.features[6] > 0):
+        #     state_index += 64
+        # if (self.features[7] > 0):
+        #     state_index += 128
+        # if (self.features[8] > 10): # length of risky_lane
+        #     state_index += 256
+        # if (self.features[9] == 1): # too close to enemy
+        #     state_index += 512
         self.cur_state = state_index
