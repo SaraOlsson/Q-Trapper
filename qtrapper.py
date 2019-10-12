@@ -20,9 +20,11 @@ from helperfunctions import *
 ai_mode = True
 speed = 20
 game_won_percentage = 0.8
-game_iterations = 5
+game_iterations = 0
 show_plot = False
-show_training = True
+show_training = False
+
+replay_mode = True # () user input)
 
 # file options
 save_q_table = False
@@ -592,6 +594,22 @@ def ui_interaction(event, game):
 
     game.add_enemy([row, column])
 
+def handle_replay():
+
+    while True:
+
+        event = pygame.event.wait()
+
+        if event.type == pygame.KEYDOWN:
+
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_r]:
+                run()
+            elif keys[pygame.K_q]:
+                pygame.quit()
+
+            break;
 
 def run():
 
@@ -665,6 +683,7 @@ def run():
         game.player.check_collisions(game) # Remember to move to AI as well
 
         if game.env.filled_percentage >= game_won_percentage:
+
             done = True
             print("GAME WON")
             print(agent.q_table)
@@ -680,8 +699,6 @@ def run():
 
             print_state_info(agent)
 
-
-
         draw_game(game)
 
         if ai_mode == True:
@@ -696,10 +713,10 @@ def run():
     if save_q_table == True:
         np.save("models", agent.q_table)
 
-
-    #pygame.time.wait(5000) # pause before quit
-    # If you forget this line, the program will 'hang' on exit.
-    pygame.quit()
+    if replay_mode == True:
+        handle_replay() # press r to replay, q to quit
+    else:
+        pygame.quit()
 
 
 run()

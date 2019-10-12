@@ -43,16 +43,8 @@ class Agent:
         self.learning_rate = 0.5
         self.gamma = 0.8
 
+        # to count times we're in a specific state
         self.state_counter = np.zeros([2**NR_FEATURES])
-        #print("state_counter shape", self.state_counter.shape  )
-
-        #states = np.arange(2**NR_FEATURES)
-        #print("states shape", states.shape  )
-
-        #self.state_counter[:,0] = states[:,0]
-
-        #print(self.state_counter)
-
 
         self.prev_action_index = 0;
         self.ping_pong_times = 0;
