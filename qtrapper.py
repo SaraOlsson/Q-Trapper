@@ -12,21 +12,22 @@ import queue
 from constants import *
 from enviroment import *
 from flood import *
-from agent import Agent
+from agent import *
 from helperfunctions import *
 
 # models_file = open("models.npy","wb")
 
 ai_mode = True
-speed = 10
+speed = 20
 game_won_percentage = 0.8
-game_iterations = 200
-show_plot = True
-show_training = False
+game_iterations = 5
+show_plot = False
+show_training = True
 
 # file options
 save_q_table = False
-load_q_table = False
+load_q_table = True
+from_scratch = False # continue on loaded q-table
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');
@@ -55,8 +56,9 @@ class Game:
         #self.bg = pygame.image.load("img/background.png")
         self.crash = False
         self.player = Player()
-        self.score = 0
+        #self.score = 0
         self.steps_required = 0
+        self.lifes_gone = 0
 
         # enemies prototype
         self.enemies = []
@@ -68,6 +70,10 @@ class Game:
         self.flood = Flood(self)
 
         self.game_won_percentage = game_won_percentage
+
+    def add_enemy(self, pos):
+
+        self.enemies.append(Enemy(pos))
 
 
 class Player(object):
@@ -85,7 +91,11 @@ class Player(object):
         self.going_risky = False
         self.pos_before_risky = self.position
         self.risky_lane = []
+        self.prev_risky_length = 0
+
         self.closest_enemy_dist = INF_DIST
+        self.latest_enemy_dist = 0
+        self.steps_at_border = 0
 
         # DOWN, RIGHT, UP, LEFT
         self.player_sprites = [pygame.image.load('sprites/turtle_down.png'),
@@ -146,6 +156,8 @@ class Player(object):
                     # If player risky lane collides with enemy
                     if enemy.alive == True and risk_pos[0] == enemy.y and risk_pos[1] == enemy.x:
 
+                        game.lifes_gone += 1
+
                         # set position to where the player left the border
                         new_pos = [self.pos_before_risky[0], self.pos_before_risky[1]]
                         self.set_position(new_pos)
@@ -162,10 +174,11 @@ class Player(object):
 
 
 class Enemy:
-    def __init__(self):
-        self.y = randint(2, 18)
-        self.x = randint(2, 18)
-        self.position = [self.y, self.x]
+    def __init__(self, pos = None):
+
+        self.y = randint(2, 18) if pos is None else pos[0]
+        self.x = randint(2, 18) if pos is None else pos[1]
+        self.position = [self.y, self.x] if pos is None else pos
         # Initialize with random direction
         self.dir_list = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
         self.direction = choice(self.dir_list)
@@ -220,7 +233,7 @@ class Enemy:
                         try_counter += 1
 
                         if try_counter > 3:
-                            print("enemy is trapped")
+                            #print("enemy is trapped")
                             self.alive = False
                             #set_new_pos = False
                             #break
@@ -248,52 +261,41 @@ class Enemy:
         # update closest_enemy_dist if a riskyline currently exists and was smaller than for any other enemy
         if min_dist < INF_DIST:
             #print("enemy at distance", min_dist, "from riskyline")
+            player.latest_enemy_dist = player.closest_enemy_dist
             player.closest_enemy_dist = min_dist if min_dist < player.closest_enemy_dist else player.closest_enemy_dist
 
 
-
+# event.type = KEYDOWN:
 def user_controller(event, game, agent):
 
     grid = game.env.grid
     player = game.player
     enemies = game.enemies
 
-    if event.type == pygame.MOUSEBUTTONDOWN: # doesn't work rn since only keydown events are passed
-        # User clicks the mouse. Get the position
-        # Change the x/y screen coordinates to grid coordinates
-        pos = pygame.mouse.get_pos()
-        column = pos[0] // (WIDTH + MARGIN)
-        row = pos[1] // (HEIGHT + MARGIN)
+    keys = pygame.key.get_pressed()
+    cur_pos = copy.deepcopy(player.position)
 
-        print("Click ", pos, "Grid coordinates: ", row, column)
+    move_array = [0, 0]
+    y_change = 0
+    x_change = 0
 
-    elif event.type == pygame.KEYDOWN:
+    if keys[pygame.K_LEFT] and player.x > 0:
+        x_change = -1
 
-        keys = pygame.key.get_pressed()
-        cur_pos = copy.deepcopy(player.position)
+    if keys[pygame.K_RIGHT] and player.x < GRID_SIZE - 1:
+        x_change = 1
 
-        move_array = [0, 0]
-        y_change = 0
-        x_change = 0
+    if keys[pygame.K_UP] and player.y > 0:
+        y_change = -1
 
-        if keys[pygame.K_LEFT] and player.x > 0:
-            x_change = -1
+    if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
+        y_change = 1
 
-        if keys[pygame.K_RIGHT] and player.x < GRID_SIZE - 1:
-            x_change = 1
+    y = player.y + y_change
+    x = player.x + x_change
+    new_pos = [y, x]
 
-        if keys[pygame.K_UP] and player.y > 0:
-            y_change = -1
-
-        if keys[pygame.K_DOWN] and player.y < GRID_SIZE - 1:
-            y_change = 1
-
-        y = player.y + y_change
-        x = player.x + x_change
-
-        new_pos = [y, x]
-
-        eval_move(game, new_pos, cur_pos)
+    eval_move(game, new_pos, cur_pos)
 
 
 def ai_controller(game, agent):
@@ -398,7 +400,13 @@ def eval_move(game, new_pos, cur_pos):
 
 
         grid[y][x] = RISKYLINE # fill risky line after player
+        player.prev_risky_length = len(player.risky_lane)
         player.risky_lane.append([y, x])
+
+    if grid[y][x] == BORDER:
+        player.steps_at_border += 1
+    else:
+        player.steps_at_border = 0
 
     # the actual position update. For both AI and user controller
     player.set_position(new_pos)
@@ -406,12 +414,16 @@ def eval_move(game, new_pos, cur_pos):
 
 
 def training_ai(agent):
+
     counter_games = 0
 
+    # for plotting statistics
+    reward_plot = []
     score_plot = []
     counter_plot = []
+    lifes_plot = []
 
-
+    # run the game several times
     while counter_games < game_iterations:
         # print training progress
         if counter_games % 10 == 0:
@@ -427,7 +439,9 @@ def training_ai(agent):
         # Loop until the user clicks the close button.
         done = False
         game.steps_required = 0
+        total_reward = 0
 
+        # ONE GAME
         while not done:
 
             ai_controller(game, agent)
@@ -443,27 +457,31 @@ def training_ai(agent):
 
             game.player.closest_enemy_dist = INF_DIST
 
-            if count_enemy % 10 == 0: # Remember to move to AI as well
-                for enemy in enemies:
-                    enemy.move(game)
+            #if count_enemy % 10 == 0: # Remember to move to AI as well
+            for enemy in enemies:
+                enemy.move(game)
             count_enemy += 1
 
             # Checking collisons
             game.player.check_collisions(game) # Remember to move to AI as well
 
             game.steps_required += 1
-            score_plot.append(game.steps_required)
-            counter_plot.append(counter_games)
+            total_reward += agent.current_reward
 
             if show_training == True:
                 draw_game(game)
 
                 # Limit to 60 frames per second, then update the screen
+                pygame.time.wait(speed)
                 game.clock.tick(60)
                 pygame.display.flip() # alternative: pygame.display.update()
 
-            #print("game.score_plot", game.score_plot)
-            #print("game.counter_plot", game.counter_plot)
+
+        # Update statistics
+        score_plot.append(game.steps_required)
+        reward_plot.append(total_reward)
+        counter_plot.append(counter_games)
+        lifes_plot.append(game.lifes_gone)
 
         # one game done
         counter_games += 1
@@ -471,8 +489,12 @@ def training_ai(agent):
         #print("agent.exploration_rate", agent.exploration_rate)
 
     if show_plot == True:
-        plot_seaborn(counter_plot, score_plot)
 
+        plot_seaborn(counter_plot, reward_plot, 'game iteration', 'total reward' )
+        plot_seaborn(counter_plot, lifes_plot, 'game iteration', 'lifes gone' )
+        plot_seaborn(counter_plot, score_plot, 'game iteration', 'steps required' )
+
+# is called every time step
 def draw_game(game):
 
     # Set the screen background
@@ -480,8 +502,6 @@ def draw_game(game):
     grid = game.env.grid
     player = game.player
     enemies = game.enemies
-
-    #print("game.steps_required", game.steps_required)
 
     if (game.steps_required % 100 == 0 or game.steps_required == 1):
         game.env.special_tiles.generate_special_tiles()
@@ -493,9 +513,6 @@ def draw_game(game):
             if grid[row][column] == PLAYFIELD: # if risky line
 
                 color = GRAY
-                #print("game.clock", time.time())
-
-                #if (game.steps_required % 10 == 0 and uniform(0, 1) < 0.2):
 
                 if [row, column] in game.env.special_tiles.cells:
                     sprite = playfield_special_sprite
@@ -513,10 +530,6 @@ def draw_game(game):
             elif grid[row][column] == FILL: # if fill
                 color = ORANGE
                 sprite = fill_sprite
-
-            # color the cell where the agent is
-            #if row == player.y and column == player.x:
-            #    color = GREEN
 
             # color enemy cells
             for enemy in enemies:
@@ -566,18 +579,35 @@ def load_q_table_from_file(agent):
 
     agent.q_table = loaded_q_table
 
-    # print(loaded_q_table)
+    print(loaded_q_table)
+
+# event.type = MOUSEBUTTONDOWN
+def ui_interaction(event, game):
+
+    # User clicks the mouse. Get the position
+    # Change the x/y screen coordinates to grid coordinates
+    pos = pygame.mouse.get_pos()
+    column = pos[0] // (WIDTH + MARGIN)
+    row = pos[1] // (HEIGHT + MARGIN)
+
+    game.add_enemy([row, column])
+
 
 def run():
 
     pygame.init()
     agent = Agent()
 
+    # possibly load q-table, possibly train ai
     if load_q_table == True:
         load_q_table_from_file(agent)
+
+        if ai_mode == True and from_scratch == False:
+            training_ai(agent)
+
     elif ai_mode == True: # or both load and train!
         # Train AI off screen
-        training_ai(agent)
+        training_ai(agent) # SEVERAL GAMES
 
     # After training, use agent to play the game
     agent.training = False
@@ -585,6 +615,8 @@ def run():
     # Initialize classes
     game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, True, num_enemies_game)
     enemies = game.enemies
+    game.steps_required = 0
+    game.lifes_gone = 0
 
     agent.init_agent(game)
 
@@ -594,28 +626,37 @@ def run():
     # counter for enemy movement
     count_enemy = 0
 
-    game.steps_required = 0
-
     # for graphics
     special_playfield_tiles = []
 
+    # ONE GAME
     while not done:
 
+        # let player take step (ai mode)
         if ai_mode == True:
             ai_controller(game, agent)
-            pygame.time.wait(speed)
+
+            if ai_mode == False:
+                pygame.time.wait(speed)
 
         for event in pygame.event.get():  # User did something
             if event.type == pygame.QUIT:  # If user clicked close
                 done = True  # Flag that we are done so we exit this loop
 
+            # let player take step (user test mode)
             if event.type == pygame.KEYDOWN and ai_mode == False:
                 # print(event.type)
                 user_controller(event, game, agent)
 
+            # add enemies on mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN:
+
+                ui_interaction(event, game)
+
         game.player.closest_enemy_dist = INF_DIST
 
-        if count_enemy % 10 == 0: # Remember to move to AI as well
+        # let enemies take a new step
+        if ai_mode == True or count_enemy % 10 == 0: # Remember to move to AI as well
             for enemy in enemies:
                 enemy.move(game)
         count_enemy += 1
@@ -630,14 +671,21 @@ def run():
             print("steps_required", game.steps_required)
 
             q_sum_per_state = np.sum(agent.q_table, axis=1)
-            print("q_sum_per_state", q_sum_per_state )
-            print("q_sum_per_state shape", q_sum_per_state.shape )
+            #print("q_sum_per_state", q_sum_per_state )
+            #print("q_sum_per_state shape", q_sum_per_state.shape )
 
             where = np.where(q_sum_per_state == 0)[0]
 
             print("where", where.shape[0], "of", q_sum_per_state.shape[0], "is zero"  ) # 767 av 1024 when training 150 games
 
+            print_state_info(agent)
+
+
+
         draw_game(game)
+
+        if ai_mode == True:
+            pygame.time.wait(speed)
 
         # Limit to 60 frames per second, then update the screen
         game.clock.tick(60)

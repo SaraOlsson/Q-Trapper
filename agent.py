@@ -7,11 +7,15 @@ TODO:
 """
 import numpy as np
 from constants import *
+from helperfunctions import *
 import random
 
 # Constants
 NR_FEATURES = 6 #10
 MOVES = 4
+
+# features
+RISKY_LIM = 5 # not used now
 
 """
 features
@@ -39,14 +43,22 @@ class Agent:
         self.learning_rate = 0.5
         self.gamma = 0.8
 
-        # for epsilon-greedy
-        self.epsilon = 0.1
-        self.policy = self.createEpsilonGreedyPolicy(self.q_table, self.epsilon, MOVES)
+        self.state_counter = np.zeros([2**NR_FEATURES])
+        #print("state_counter shape", self.state_counter.shape  )
+
+        #states = np.arange(2**NR_FEATURES)
+        #print("states shape", states.shape  )
+
+        #self.state_counter[:,0] = states[:,0]
+
+        #print(self.state_counter)
+
 
         self.prev_action_index = 0;
         self.ping_pong_times = 0;
+        self.current_reward = 0;
         #self.init_agent()
-        print(self.q_table)
+        #print(self.q_table)
 
     def init_agent(self, game):
         self.game = game
@@ -104,7 +116,7 @@ class Agent:
 
 
             if self.game.env.filled_percentage >= self.game.game_won_percentage: # is not happening?
-                print("game won reward")
+                #print("game won reward")
                 return 50
 
             if r_test > 1: # more than one percent
@@ -117,41 +129,6 @@ class Agent:
 
         return -1
 
-        # if filled_percentage increased?
-
-    def createEpsilonGreedyPolicy(self, q_table, epsilon, num_actions):
-        """
-        Creates an epsilon-greedy policy based
-        on a given Q-function and epsilon.
-
-        Returns a function that takes the state
-        as an input and returns the probabilities
-        for each action in the form of a numpy array
-        of length of the action space(set of possible actions).
-        """
-        def policyFunction(state):
-
-            Action_probabilities = np.ones(num_actions,
-                    dtype = float) * epsilon / num_actions
-
-            best_action = np.argmax(q_table[self.cur_state])
-            Action_probabilities[best_action] += (1.0 - epsilon)
-            return Action_probabilities
-
-        return policyFunction
-
-    def get_best_move_greedy(self, cur_pos):
-
-        # get probabilities of all actions from current state
-        action_probabilities = self.policy(self.cur_state)  # is not taking transition_reward into account
-
-        # choose action according to
-        # the probability distribution
-        action = np.random.choice(np.arange(
-                  len(action_probabilities)),
-                   p = action_probabilities)
-
-        return action
 
     # get best action index based on transition and reward
     def get_best_move(self, cur_pos):
@@ -187,17 +164,21 @@ class Agent:
     def update_q_table(self, move_idx, cur_pos):
 
         cur_state = self.cur_state
+        #print("cur_state FIRST", cur_state)
         new_pos = [cur_pos[0] + self.actions[move_idx][0], cur_pos[1] + self.actions[move_idx][1]]
         self.calculate_features(new_pos)
-        next_state = self.get_state_from_features()
+        #next_state = self.get_state_from_features() # is null juu
+        self.get_state_from_features()
+        next_state = self.cur_state
 
         # calculate q-vals
         cur_q_vals = [q_val for q_val in self.q_table[next_state]]
+
         max_q = np.max(cur_q_vals)
 
         # update table for this state and action
         old_q = self.q_table[cur_state][move_idx]
-        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.get_transition_reward(new_pos, move_idx) + self.gamma * max_q - old_q)
+        new_q = old_q + self.learning_rate * (self.get_reward(new_pos) + self.get_transition_reward(new_pos, move_idx) + self.gamma * max_q - old_q) #
         self.q_table[cur_state][move_idx] = new_q
 
     # each time step, first thing to do
@@ -243,6 +224,8 @@ class Agent:
         self.calculate_features(cur_pos)
         self.get_state_from_features()
 
+        self.state_counter[self.cur_state] += 1
+
         return self.actions[move_idx]
 
     def get_is_celltype(self, cur_pos, action, celltype=PLAYFIELD):
@@ -256,12 +239,25 @@ class Agent:
         else:
             return 0
 
-    def get_is_close_enemy(self):
+    def get_is_close_enemy(self, min_dist = 0):
 
-        if self.game.player.closest_enemy_dist <= TOO_CLOSE:
-            return 1
+        if min_dist == 0:
+            return 1 if self.game.player.closest_enemy_dist <= 2*min_dist else 0
         else:
-            return 0
+            return 1 if self.game.player.closest_enemy_dist <= 2*TOO_CLOSE else 0
+
+    def can_enter_border(self, celltype):
+
+        player = self.game.player
+        neighbour_cells = self.game.env.limited_neighbours(*player.position)
+
+        for neighbour_cell in neighbour_cells:
+
+            y, x = neighbour_cell
+            if self.game.env.within_grid([y, x]) and self.game.env.grid[y][x] == celltype:
+                return 1
+
+        return 0
 
     def calculate_features(self, cur_pos):
         idx = 0
@@ -277,8 +273,39 @@ class Agent:
 
         self.features[idx] = self.get_is_close_enemy()
 
-        #if self.game.player.closest_enemy_dist <= TOO_CLOSE:
-        #    print( "dist to enemy only", self.game.player.closest_enemy_dist, "!!!" )
+
+    # return binary feature scores for border surrounding check
+    def get_closest_to(self, actions, celltype):
+
+        feature_scores = [0, 0, 0, 0]
+        player = self.game.player
+        closest_actions = []
+        min_dist = INF_DIST
+
+        # calculate closest dist value
+        for action in actions:
+
+            distance = strict_direction_dist( self.game, player.position, action, BORDER )
+            if distance < min_dist:
+                min_dist = distance
+
+        # see which actions will lead to this min distance, change feature_score for then
+        for i in range(len(actions)):
+
+            action = actions[i]
+            temp_pos = [player.position[0] + action[0], player.position[1] + action[1]]
+            distance = strict_direction_dist( self.game, player.position, action, BORDER )
+
+            if self.game.env.within_grid(temp_pos) and distance == min_dist:
+                closest_actions.append(action)
+                feature_scores[i] = 1
+
+        dir_names = list(map(action_to_dirname, closest_actions))
+        #print("closest_actions", dir_names)
+        #print("feature_scores", feature_scores)
+
+        return feature_scores, min_dist
+
 
     def init_q_table(self, cur_):
         print("init q_table")
@@ -286,7 +313,7 @@ class Agent:
     def get_state_from_features(self):
         state_index = 0
 
-        if (self.features[0] > 0): # 0-3: is border
+        if (self.features[0] > 0): # 0-3: will action(s) lead to closest border
             state_index += 1
         if (self.features[1] > 0):
             state_index += 2
@@ -294,10 +321,12 @@ class Agent:
             state_index += 4
         if (self.features[3] > 0):
             state_index += 8
-        if (self.features[4] > 10): # length of risky_lane
+        if (self.features[4] > 0): # length of risky_lane
             state_index += 16
-        if (self.features[5] == 1): # too close to enemy
+        if (self.features[5] > 0): # too close to enemy
             state_index += 32
+        #if (self.features[6] > 0): # has possibilty to enter border
+        #    state_index += 64
 
         # if (self.features[0] > 0): # 0-3: is playfield
         #     state_index += 1
