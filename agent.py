@@ -28,7 +28,6 @@ will action take player to:
 
 """
 
-
 class Agent:
     def __init__(self):
         self.q_table = np.zeros([2**NR_FEATURES, MOVES])
@@ -42,10 +41,6 @@ class Agent:
         self.training = True
         self.learning_rate = 0.5
         self.gamma = 0.8
-
-        #0.5 - game_iterations*x = 0.1
-
-
 
         # to count times we're in a specific state
         self.state_counter = np.zeros([2**NR_FEATURES])
@@ -62,11 +57,9 @@ class Agent:
         lrate = initial_lrate * np.exp(-k*epoch)
         return lrate
 
-        #0.1 = 0.5 * e^(-k*epoch)
-
-        #0.1 / 0.5 = e^(-k*epoch)
-
-        #- np.log( 0.1 / 0.5) / 500 = k
+        # 0.1 = 0.5 * e^(-k*epoch)
+        # 0.1 / 0.5 = e^(-k*epoch)
+        # - np.log( 0.1 / 0.5) / 500 = k
 
     def init_agent(self, game):
         self.game = game
@@ -82,7 +75,6 @@ class Agent:
         y, x = pos # possible new position
         y_cur, x_cur = player.position
         y_prev, x_prev = player.prev_pos
-
 
         # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
@@ -102,12 +94,9 @@ class Agent:
         # play safe or be brave
         if player.enemy_too_close == 1:
 
-
             # pos reward for running away from enemy towards closest border
             if grid[y][x] == PLAYFIELD and border_dist_scores[move_idx] == 1:
-                # and player.enemy_too_close == 1
-                #    print("running away reward!")
-                reward += 2
+                reward += 4
 
         else: # be brave
 
@@ -119,13 +108,6 @@ class Agent:
             if grid[y][x] == PLAYFIELD:
                 reward += 1
 
-
-        #print("now" , player.closest_enemy_dist, "prev", player.latest_enemy_dist)
-
-        # if grid[y][x] == PLAYFIELD and player.closest_enemy_dist < player.latest_enemy_dist:
-        #     #print("running away reward!")
-        #     reward += 2
-
         return reward
 
     # used when updating the q-table
@@ -134,10 +116,7 @@ class Agent:
         reward = 0
         instant_fill = np.floor(self.game.env.instant_fill_increase*100) # eg from 0.01 to 1
 
-        #print("get_reward", self.game.env.instant_fill_increase)
-
         if self.game.env.instant_player_died == True:
-            #print("player died, NEG REWARD")
             reward = -10 #20
 
         if instant_fill > 0:
@@ -263,9 +242,6 @@ class Agent:
 
     def get_is_close_enemy(self, min_dist = 0):
 
-        #print("min_dist", min_dist)
-        #print("enemy_dist", self.game.player.closest_enemy_dist)
-
         if min_dist == 0: # not very meaningful if entering here
             too_close = 1 if self.game.player.closest_enemy_dist <= 2*TOO_CLOSE else 0
         else: # most useful
@@ -290,9 +266,7 @@ class Agent:
 
     def calculate_features(self, cur_pos):
         idx = 0
-        # for action in self.actions:
-        #     self.features[idx] = self.get_is_celltype(cur_pos, action)
-        #     idx += 1
+
         for action in self.actions:
             self.features[idx] = self.get_is_celltype(cur_pos, action, BORDER)
             idx += 1
@@ -363,21 +337,6 @@ class Agent:
             state_index += 16
         if (self.features[5] > 0): # too close to enemy
             state_index += 32
-        #if (self.features[6] > 0): # has possibilty to enter border
-        #    state_index += 64
-
-        # if (self.features[0] > 0): # 0-3: is playfield
-        #     state_index += 1
-        # if (self.features[1] > 0):
-        #     state_index += 2
-        # if (self.features[2] > 0):
-        #     state_index += 4
-        # if (self.features[3] > 0):
-        #     state_index += 8
-        # if (self.features[4] > 0): # 0-3: is border
-        #     state_index += 16
-        # if (self.features[5] > 0):
-        #     state_index += 32
         if (self.features[6] > 0):
             state_index += 64
         if (self.features[7] > 0):

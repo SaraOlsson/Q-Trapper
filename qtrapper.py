@@ -15,25 +15,25 @@ from flood import *
 from agent import *
 from helperfunctions import *
 
-# models_file = open("models.npy","wb")
-
 ai_mode = True
-speed = 50
+speed = 80
 game_won_percentage = 0.8
-game_iterations = 500
+game_iterations = 5
 show_plot = True
 show_training = False
 
-replay_mode = True # () user input)
+replay_mode = False # when True - PRESS q to close window or r to replay 
 
 # file options
-save_q_table = True
+save_q_table = False
 load_q_table = False
 from_scratch = False # continue on loaded q-table
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
 playfield_sprite = pygame.image.load('sprites/water.png');
 playfield_special_sprite = pygame.image.load('sprites/water_light_wave2.png');
+#playfield_special_sprite = pygame.image.load('sprites/water_wavy.png');
+
 enemy_sprite = pygame.image.load('sprites/shark.png');
 enemy_dead_sprite = pygame.image.load('sprites/gravestone.png');
 border_sprite = pygame.image.load('sprites/shallow_beach.png');
@@ -41,7 +41,7 @@ riskyline_sprite = pygame.image.load('sprites/risky_water.png');
 fill_sprite = pygame.image.load('sprites/beach.png');
 
 # number of enemies
-num_enemies_training = 2
+num_enemies_training = 4
 num_enemies_game = 2
 
 # visual appearence
@@ -55,27 +55,31 @@ class Game:
             self.game_width = game_width
             self.game_height = game_height
             self.gameDisplay = pygame.display.set_mode((game_width, game_height+60))
-        #self.bg = pygame.image.load("img/background.png")
+
         self.crash = False
         self.player = Player()
-        #self.score = 0
         self.steps_required = 0
         self.lifes_gone = 0
-
-        # enemies prototype
-        self.enemies = []
-        for n in range(num_enemies):
-            self.enemies.append(Enemy())
 
         self.clock = pygame.time.Clock()
         self.env = Enviroment(grid_size)
         self.flood = Flood(self)
 
+        # enemies prototype
+        self.enemies = []
+        for n in range(num_enemies):
+            new_enemy = Enemy()
+            assert self.env.within_grid(new_enemy.position) == True, "enemy not in within grid"
+            self.enemies.append(new_enemy)
+
         self.game_won_percentage = game_won_percentage
 
     def add_enemy(self, pos):
 
-        self.enemies.append(Enemy(pos))
+        if self.env.within_grid(pos) == True and self.env.grid[pos[0]][pos[1]] == PLAYFIELD:
+            self.enemies.append(Enemy(pos))
+        else:
+            print("cannot add enemy outside playfield")
 
 
 class Player(object):
@@ -123,23 +127,11 @@ class Player(object):
 
         if grid[self.y][self.x] == FILL:
 
-            #print("move me plz")
-            # new_pos = game.env.find_cell(BORDER) # searches from topleft
-            #
-            # start_queue = queue.Queue()
-            # start_queue.put((self.x,self.y))
-            # BFS_results = BFS(start_queue, game, BORDER)
-            #print("BFS set_position: ", BFS_results)
-            #print("searching")
             rows, columns = np.where(grid == BORDER)
             border_cells = np.stack((rows, columns), axis=1)
             closest_border = self.position
-            #print('heeeeej')
             if (border_cells.shape[0] != 0):
-            #     print(grid)
-            #     print(rows)
-            #     print(columns)
-            # print("border_cells", border_cells.shape)
+
                 _, closest_border = calculate_distance_to_cells(self, border_cells)
 
 
@@ -165,8 +157,6 @@ class Player(object):
                         new_pos = [self.pos_before_risky[0], self.pos_before_risky[1]]
                         self.set_position(new_pos)
                         game.env.instant_player_died = True
-                        # print("enemy position: ", self.position)
-
 
                         # Mark all cells in risky_lane as playfield
                         for cell in self.risky_lane:
@@ -278,7 +268,6 @@ def user_controller(event, game, agent):
     keys = pygame.key.get_pressed()
     cur_pos = copy.deepcopy(player.position)
 
-    move_array = [0, 0]
     y_change = 0
     x_change = 0
 
@@ -503,11 +492,6 @@ def training_ai(agent):
             exploration_stop = True
             print("exploration stop!")
 
-        # already at iteration 190
-        #if agent.exploration_rate <= 0.1:
-            #print("agent.exploration_rate = ", agent.exploration_rate)
-        #print("agent.exploration_rate", agent.exploration_rate)
-
         # print training progress
         iteration_steps_info.append(game.steps_required)
         if counter_games % 10 == 0:
@@ -599,8 +583,8 @@ def load_q_table_from_file(agent):
 
     loaded_q_table = np.load("models.npy")
 
-    print("loaded_q_table", loaded_q_table.shape)
-    print("agent.q_table", agent.q_table.shape)
+    #print("loaded_q_table", loaded_q_table.shape)
+    #print("agent.q_table", agent.q_table.shape)
 
     assert loaded_q_table.shape == agent.q_table.shape, "shapes does not agree"
 
@@ -715,7 +699,7 @@ def run():
             done = True
             print("GAME WON")
             print(agent.q_table)
-            print("steps_required", game.steps_required)
+            #print("steps_required", game.steps_required)
 
             q_sum_per_state = np.sum(agent.q_table, axis=1)
             #print("q_sum_per_state", q_sum_per_state )
