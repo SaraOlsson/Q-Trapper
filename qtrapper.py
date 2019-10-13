@@ -18,17 +18,17 @@ from helperfunctions import *
 # models_file = open("models.npy","wb")
 
 ai_mode = True
-speed = 20
+speed = 50
 game_won_percentage = 0.8
-game_iterations = 0
-show_plot = False
+game_iterations = 500
+show_plot = True
 show_training = False
 
 replay_mode = True # () user input)
 
 # file options
-save_q_table = False
-load_q_table = True
+save_q_table = True
+load_q_table = False
 from_scratch = False # continue on loaded q-table
 
 player_sprite = pygame.image.load('sprites/turtle_up.png');
@@ -98,6 +98,7 @@ class Player(object):
         self.closest_enemy_dist = INF_DIST
         self.latest_enemy_dist = 0
         self.steps_at_border = 0
+        self.enemy_too_close = 0
 
         # DOWN, RIGHT, UP, LEFT
         self.player_sprites = [pygame.image.load('sprites/turtle_down.png'),
@@ -258,7 +259,7 @@ class Enemy:
         player = game.player
         min_dist = INF_DIST
         if len(player.risky_lane) > 0:
-            min_dist, _ = calculate_distance_to_cells(self, player.risky_lane)
+            min_dist, _ = calculate_distance_to_cells(self, player.risky_lane, euclidian = True) # should be euclidian?
 
         # update closest_enemy_dist if a riskyline currently exists and was smaller than for any other enemy
         if min_dist < INF_DIST:
@@ -424,12 +425,13 @@ def training_ai(agent):
     score_plot = []
     counter_plot = []
     lifes_plot = []
+    iteration_steps_info = []
+
+    learnig_stop = False
+    exploration_stop = False
 
     # run the game several times
     while counter_games < game_iterations:
-        # print training progress
-        if counter_games % 10 == 0:
-            print("Iteration", counter_games)
 
         # Initialize classes
         game = Game(WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE, show_training, num_enemies_training)
@@ -478,7 +480,6 @@ def training_ai(agent):
                 game.clock.tick(60)
                 pygame.display.flip() # alternative: pygame.display.update()
 
-
         # Update statistics
         score_plot.append(game.steps_required)
         reward_plot.append(total_reward)
@@ -487,8 +488,32 @@ def training_ai(agent):
 
         # one game done
         counter_games += 1
-        agent.exploration_rate = agent.exploration_rate - 0.002 if agent.exploration_rate > 0.1 else agent.exploration_rate
+        #agent.exploration_rate = agent.exploration_rate - 0.002 if agent.exploration_rate > 0.1 else agent.exploration_rate
+        #agent.learning_rate = agent.learning_rate - 0.002 if agent.learning_rate > 0.2 else agent.learning_rate
+
+        agent.exploration_rate = agent.exp_decay(counter_games) if agent.exploration_rate > 0.1 else agent.exploration_rate
+        agent.learning_rate = agent.exp_decay(counter_games) if agent.learning_rate > 0.1 else agent.learning_rate
+        # exp_decay(self, epoch)
+
+        if learnig_stop == False and agent.learning_rate <= 0.1:
+            learnig_stop = True
+            print("learnig stop!")
+
+        if exploration_stop == False and agent.exploration_rate <= 0.1:
+            exploration_stop = True
+            print("exploration stop!")
+
+        # already at iteration 190
+        #if agent.exploration_rate <= 0.1:
+            #print("agent.exploration_rate = ", agent.exploration_rate)
         #print("agent.exploration_rate", agent.exploration_rate)
+
+        # print training progress
+        iteration_steps_info.append(game.steps_required)
+        if counter_games % 10 == 0:
+            average_steps_10_games = np.average(np.asarray(iteration_steps_info))
+            print("Iteration", counter_games, "| avg steps req", average_steps_10_games )
+            iteration_steps_info.clear()
 
     if show_plot == True:
 
@@ -612,6 +637,9 @@ def handle_replay():
             break;
 
 def run():
+
+    test_k = - np.log( 0.1 / 0.5) / 500
+    print("test_k", test_k)
 
     pygame.init()
     agent = Agent()

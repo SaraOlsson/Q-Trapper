@@ -11,7 +11,7 @@ from helperfunctions import *
 import random
 
 # Constants
-NR_FEATURES = 6 #10
+NR_FEATURES = 10 #10
 MOVES = 4
 
 # features
@@ -43,6 +43,10 @@ class Agent:
         self.learning_rate = 0.5
         self.gamma = 0.8
 
+        #0.5 - game_iterations*x = 0.1
+
+
+
         # to count times we're in a specific state
         self.state_counter = np.zeros([2**NR_FEATURES])
 
@@ -51,6 +55,18 @@ class Agent:
         self.current_reward = 0;
         #self.init_agent()
         #print(self.q_table)
+
+    def exp_decay(self, epoch):
+        initial_lrate = 0.5
+        k = 0.005
+        lrate = initial_lrate * np.exp(-k*epoch)
+        return lrate
+
+        #0.1 = 0.5 * e^(-k*epoch)
+
+        #0.1 / 0.5 = e^(-k*epoch)
+
+        #- np.log( 0.1 / 0.5) / 500 = k
 
     def init_agent(self, game):
         self.game = game
@@ -67,12 +83,6 @@ class Agent:
         y_cur, x_cur = player.position
         y_prev, x_prev = player.prev_pos
 
-        if grid[y][x] == PLAYFIELD:
-            reward += 1
-
-        # positive reward if keeping same direction
-        if move_idx == self.prev_action_index:
-            reward += 2
 
         # negative reward if ping pong times
         if y == player.prev_pos[0] and x == player.prev_pos[1]:
@@ -84,42 +94,60 @@ class Agent:
             #print("pos is prev_pos")
 
         # if action will close an area
-        if grid[y][x] == BORDER and len(player.risky_lane) > 1:
+        if grid[y][x] == BORDER and len(player.risky_lane) > RISKY_LIM:
             reward += 2
+
+        border_dist_scores, min_dist = self.get_closest_to(pos, self.actions, BORDER)
+
+        # play safe or be brave
+        if player.enemy_too_close == 1:
+
+
+            # pos reward for running away from enemy towards closest border
+            if grid[y][x] == PLAYFIELD and border_dist_scores[move_idx] == 1:
+                # and player.enemy_too_close == 1
+                #    print("running away reward!")
+                reward += 2
+
+        else: # be brave
+
+            # positive reward if keeping same direction
+            if move_idx == self.prev_action_index:
+                reward += 2
+
+            # shouldnt walk too much on border
+            if grid[y][x] == PLAYFIELD:
+                reward += 1
+
+
+        #print("now" , player.closest_enemy_dist, "prev", player.latest_enemy_dist)
+
+        # if grid[y][x] == PLAYFIELD and player.closest_enemy_dist < player.latest_enemy_dist:
+        #     #print("running away reward!")
+        #     reward += 2
 
         return reward
 
     # used when updating the q-table
     def get_reward(self, new_pos):
 
-        instant_fill_increase = self.game.env.instant_fill_increase
+        reward = 0
+        instant_fill = np.floor(self.game.env.instant_fill_increase*100) # eg from 0.01 to 1
 
         #print("get_reward", self.game.env.instant_fill_increase)
 
         if self.game.env.instant_player_died == True:
             #print("player died, NEG REWARD")
-            return -20
+            reward = -10 #20
 
-        if instant_fill_increase > 0:
+        if instant_fill > 0:
 
-            r_test = np.floor(instant_fill_increase*100)
+            reward = 10
 
-            #print("instant_fill_increase", instant_fill_increase)
+        reward = -1
 
-
-            if self.game.env.filled_percentage >= self.game.game_won_percentage: # is not happening?
-                #print("game won reward")
-                return 50
-
-            if r_test > 1: # more than one percent
-                #print("r_test more", r_test*2)
-                return r_test*2
-
-            else:
-                #print("r_test less ", 1)
-                return 2
-
-        return -1
+        self.current_reward = reward
+        return reward
 
 
     # get best action index based on transition and reward
@@ -133,6 +161,8 @@ class Agent:
         best_index = -1
         idx = 0
         val = 0
+
+        #print("enemy_too_close", self.game.player.enemy_too_close)
 
         for val in q_values:
 
@@ -233,10 +263,17 @@ class Agent:
 
     def get_is_close_enemy(self, min_dist = 0):
 
-        if min_dist == 0:
-            return 1 if self.game.player.closest_enemy_dist <= 2*min_dist else 0
-        else:
-            return 1 if self.game.player.closest_enemy_dist <= 2*TOO_CLOSE else 0
+        #print("min_dist", min_dist)
+        #print("enemy_dist", self.game.player.closest_enemy_dist)
+
+        if min_dist == 0: # not very meaningful if entering here
+            too_close = 1 if self.game.player.closest_enemy_dist <= 2*TOO_CLOSE else 0
+        else: # most useful
+            too_close = 1 if self.game.player.closest_enemy_dist <= 2*min_dist else 0
+
+        self.game.player.enemy_too_close = too_close
+
+        return too_close
 
     def can_enter_border(self, celltype):
 
@@ -263,21 +300,30 @@ class Agent:
         self.features[idx] = len(self.game.player.risky_lane)
         idx += 1
 
-        self.features[idx] = self.get_is_close_enemy()
+        player_pos = self.game.player.position
+        border_dist_scores, min_dist = self.get_closest_to(player_pos, self.actions, BORDER)
+
+        self.features[idx] = self.get_is_close_enemy(min_dist)
+        idx += 1
+
+        for dist_binary_score in border_dist_scores:
+
+            #print("dist_score", dist_score)
+            self.features[idx] = dist_binary_score
+            idx += 1
 
 
     # return binary feature scores for border surrounding check
-    def get_closest_to(self, actions, celltype):
+    def get_closest_to(self, pos, actions, celltype):
 
         feature_scores = [0, 0, 0, 0]
-        player = self.game.player
         closest_actions = []
         min_dist = INF_DIST
 
         # calculate closest dist value
         for action in actions:
 
-            distance = strict_direction_dist( self.game, player.position, action, BORDER )
+            distance = strict_direction_dist( self.game, pos, action, BORDER )
             if distance < min_dist:
                 min_dist = distance
 
@@ -285,8 +331,8 @@ class Agent:
         for i in range(len(actions)):
 
             action = actions[i]
-            temp_pos = [player.position[0] + action[0], player.position[1] + action[1]]
-            distance = strict_direction_dist( self.game, player.position, action, BORDER )
+            temp_pos = [pos[0] + action[0], pos[1] + action[1]]
+            distance = strict_direction_dist( self.game, pos, action, BORDER )
 
             if self.game.env.within_grid(temp_pos) and distance == min_dist:
                 closest_actions.append(action)
@@ -332,12 +378,13 @@ class Agent:
         #     state_index += 16
         # if (self.features[5] > 0):
         #     state_index += 32
-        # if (self.features[6] > 0):
-        #     state_index += 64
-        # if (self.features[7] > 0):
-        #     state_index += 128
-        # if (self.features[8] > 10): # length of risky_lane
-        #     state_index += 256
-        # if (self.features[9] == 1): # too close to enemy
-        #     state_index += 512
+        if (self.features[6] > 0):
+            state_index += 64
+        if (self.features[7] > 0):
+            state_index += 128
+        if (self.features[8] > 0):
+            state_index += 256
+        if (self.features[9] > 0):
+            state_index += 512
+
         self.cur_state = state_index
