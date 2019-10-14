@@ -17,10 +17,10 @@ from helperfunctions import *
 
 # models_file = open("models.npy","wb")
 
-ai_mode = True
+ai_mode = False
 speed = 10
 game_won_percentage = 0.8
-game_iterations = 200
+game_iterations = 100
 show_plot = True
 show_training = False
 
