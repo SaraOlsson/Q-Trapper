@@ -19,7 +19,7 @@ from helperfunctions import *
 ai_mode = True
 speed = 80
 game_won_percentage = 0.8
-game_iterations = 5
+game_iterations = 1000
 show_plot = True
 show_training = False
 
@@ -42,7 +42,7 @@ riskyline_sprite = pygame.image.load('sprites/risky_water.png');
 fill_sprite = pygame.image.load('sprites/beach.png');
 
 # number of enemies
-num_enemies_training = 4
+num_enemies_training = 2
 num_enemies_game = 2
 
 # visual appearence

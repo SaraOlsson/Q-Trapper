@@ -117,13 +117,13 @@ class Agent:
         instant_fill = np.floor(self.game.env.instant_fill_increase*100) # eg from 0.01 to 1
 
         if self.game.env.instant_player_died == True:
-            reward = -10 #20
+            reward += -10 #20
 
         if instant_fill > 0:
 
-            reward = 10
+            reward += 10
 
-        reward = -1
+        reward -= 1
 
         self.current_reward = reward
         return reward
